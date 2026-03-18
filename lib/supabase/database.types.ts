@@ -1,4 +1,3 @@
-// lib/supabase/database.types.ts
 export type MediaType = "image" | "video";
 export type NoteColor = "yellow" | "pink" | "lavender";
 
@@ -84,7 +83,6 @@ export interface Database {
   };
 }
 
-// Convenience type aliases
 export type Student = Database["public"]["Tables"]["students"]["Row"];
 export type GalleryMedia = Database["public"]["Tables"]["gallery_media"]["Row"];
 export type Confession = Database["public"]["Tables"]["confessions"]["Row"];
