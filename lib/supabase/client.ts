@@ -1,3 +1,5 @@
+// lib/supabase/client.ts
+// Browser-side Supabase client (uses anon key)
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "./database.types";
 

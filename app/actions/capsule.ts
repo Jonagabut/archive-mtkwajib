@@ -1,5 +1,4 @@
 "use server";
-// app/actions/capsule.ts
 import { createAdminClient, validatePasscode } from "@/lib/supabase/server";
 
 interface ActionResult {
@@ -10,13 +9,11 @@ interface ActionResult {
 export async function submitCapsuleAction(
   formData: FormData
 ): Promise<ActionResult> {
-  // ── 1. Passcode check ──
   const passcode = formData.get("passcode") as string;
   if (!validatePasscode(passcode)) {
     return { error: "Passcode salah. Minta ke admin kelas." };
   }
 
-  // ── 2. Extract fields ──
   const content = (formData.get("content") as string)?.trim();
   const authorName = (formData.get("authorName") as string)?.trim() || null;
 
@@ -27,13 +24,9 @@ export async function submitCapsuleAction(
     return { error: "Pesan terlalu panjang. Maksimum 1000 karakter." };
   }
 
-  // ── 3. Sanitize author name ──
   const sanitizedAuthor =
-    authorName && authorName.length > 0
-      ? authorName.slice(0, 80)
-      : null;
+    authorName && authorName.length > 0 ? authorName.slice(0, 80) : null;
 
-  // ── 4. Insert with unlock_at locked to 2031 ──
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("time_capsule")
@@ -53,9 +46,13 @@ export async function submitCapsuleAction(
   return { data: { id: data.id } };
 }
 
-// ── Read unlocked messages (only works after 2031-07-01) ──
 export async function getUnlockedMessagesAction(): Promise<{
-  data?: Array<{ id: string; author_name: string | null; content: string; created_at: string }>;
+  data?: Array<{
+    id: string;
+    author_name: string | null;
+    content: string;
+    created_at: string;
+  }>;
   error?: string;
   locked?: boolean;
 }> {
@@ -65,11 +62,7 @@ export async function getUnlockedMessagesAction(): Promise<{
   if (now < unlockDate) {
     return {
       locked: true,
-      error: `Capsule masih terkunci sampai ${unlockDate.toLocaleDateString("id-ID", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })}.`,
+      error: `Capsule masih terkunci sampai 1 Juli 2031.`,
     };
   }
 

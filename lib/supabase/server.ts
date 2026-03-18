@@ -1,3 +1,5 @@
+// lib/supabase/server.ts
+// Server-side admin client (uses service role key — never expose to client)
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 
@@ -19,6 +21,7 @@ export function createAdminClient() {
   return adminClient;
 }
 
+// Passcode validator
 export function validatePasscode(passcode: string): boolean {
   return passcode === process.env.CLASS_PASSCODE;
 }

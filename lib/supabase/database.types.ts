@@ -25,8 +25,26 @@ export interface Database {
           is_featured: boolean;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["students"]["Row"], "id" | "created_at">;
-        Update: Partial<Database["public"]["Tables"]["students"]["Insert"]>;
+        Insert: {
+          name: string;
+          custom_title: string;
+          quote?: string | null;
+          destination?: string | null;
+          photo_class_url: string;
+          photo_grad_url?: string | null;
+          class_number?: number | null;
+          is_featured?: boolean;
+        };
+        Update: {
+          name?: string;
+          custom_title?: string;
+          quote?: string | null;
+          destination?: string | null;
+          photo_class_url?: string;
+          photo_grad_url?: string | null;
+          class_number?: number | null;
+          is_featured?: boolean;
+        };
       };
       gallery_media: {
         Row: {
@@ -43,8 +61,30 @@ export interface Database {
           file_size_bytes: number | null;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["gallery_media"]["Row"], "id" | "created_at">;
-        Update: Partial<Database["public"]["Tables"]["gallery_media"]["Insert"]>;
+        Insert: {
+          storage_path: string;
+          storage_url: string;
+          media_type: MediaType;
+          mime_type?: string | null;
+          caption?: string | null;
+          category?: string;
+          uploaded_by?: string | null;
+          width?: number | null;
+          height?: number | null;
+          file_size_bytes?: number | null;
+        };
+        Update: {
+          storage_path?: string;
+          storage_url?: string;
+          media_type?: MediaType;
+          mime_type?: string | null;
+          caption?: string | null;
+          category?: string;
+          uploaded_by?: string | null;
+          width?: number | null;
+          height?: number | null;
+          file_size_bytes?: number | null;
+        };
       };
       confessions: {
         Row: {
@@ -56,8 +96,20 @@ export interface Database {
           rotation_deg: number;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["confessions"]["Row"], "id" | "created_at">;
-        Update: Partial<Database["public"]["Tables"]["confessions"]["Insert"]>;
+        Insert: {
+          content: string;
+          color?: NoteColor;
+          x_pos?: number;
+          y_pos?: number;
+          rotation_deg?: number;
+        };
+        Update: {
+          content?: string;
+          color?: NoteColor;
+          x_pos?: number;
+          y_pos?: number;
+          rotation_deg?: number;
+        };
       };
       time_capsule: {
         Row: {
@@ -65,11 +117,18 @@ export interface Database {
           author_name: string | null;
           content: string;
           unlock_at: string;
-          is_locked: boolean;
           created_at: string;
         };
-        Insert: Omit<Database["public"]["Tables"]["time_capsule"]["Row"], "id" | "is_locked" | "created_at">;
-        Update: Partial<Database["public"]["Tables"]["time_capsule"]["Insert"]>;
+        Insert: {
+          author_name?: string | null;
+          content: string;
+          unlock_at?: string;
+        };
+        Update: {
+          author_name?: string | null;
+          content?: string;
+          unlock_at?: string;
+        };
       };
     };
     Views: Record<string, never>;

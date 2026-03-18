@@ -1,14 +1,13 @@
 "use client";
-// components/board/ConfessionBoard.tsx
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Loader2, Pin } from "lucide-react";
 import type { Confession, NoteColor } from "@/lib/supabase/database.types";
-import { postConfessionAction, updateConfessionPositionAction } from "@/app/actions/confessions";
+import {
+  postConfessionAction,
+  updateConfessionPositionAction,
+} from "@/app/actions/confessions";
 
-// ────────────────────────────────────────────
-// CONSTANTS
-// ────────────────────────────────────────────
 const COLOR_OPTIONS: { value: NoteColor; label: string; preview: string }[] = [
   { value: "yellow", label: "Yellow", preview: "#f5e27a" },
   { value: "pink", label: "Pink", preview: "#f7b8a0" },
@@ -27,15 +26,13 @@ const BG_MAP: Record<NoteColor, string> = {
   lavender: "linear-gradient(135deg, #c4b8f0 0%, #a898e0 50%, #9080d0 100%)",
 };
 
-// ────────────────────────────────────────────
-// DRAGGABLE NOTE COMPONENT
-// ────────────────────────────────────────────
-interface DraggableNoteProps {
+function DraggableNote({
+  confession,
+  boardRef,
+}: {
   confession: Confession;
-  containerRef: React.RefObject<HTMLDivElement>;
-}
-
-function DraggableNote({ confession, containerRef }: DraggableNoteProps) {
+  boardRef: React.RefObject<HTMLDivElement>;
+}) {
   const [position, setPosition] = useState({
     x: confession.x_pos,
     y: confession.y_pos,
@@ -43,54 +40,44 @@ function DraggableNote({ confession, containerRef }: DraggableNoteProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // ── Handle drag end: persist position to DB ──
   const handleDragEnd = useCallback(
     async (
-      _: MouseEvent | TouchEvent | PointerEvent,
-      info: { offset: { x: number; y: number }; point: { x: number; y: number } }
+      _event: MouseEvent | TouchEvent | PointerEvent,
+      info: { offset: { x: number; y: number } }
     ) => {
       setIsDragging(false);
-      if (!containerRef.current) return;
+      if (!boardRef.current) return;
 
-      const containerRect = containerRef.current.getBoundingClientRect();
-      // Calculate new absolute position within container
+      const containerRect = boardRef.current.getBoundingClientRect();
       const newX = Math.max(
         0,
-        Math.min(
-          position.x + info.offset.x,
-          containerRect.width - 200 // keep within bounds
-        )
+        Math.min(position.x + info.offset.x, containerRect.width - 200)
       );
       const newY = Math.max(
         0,
-        Math.min(
-          position.y + info.offset.y,
-          containerRect.height - 180
-        )
+        Math.min(position.y + info.offset.y, containerRect.height - 180)
       );
 
-      const newPos = { x: newX, y: newY };
-      setPosition(newPos);
-
-      // Persist to database
+      setPosition({ x: newX, y: newY });
       setIsSaving(true);
       try {
-        await updateConfessionPositionAction(confession.id, newPos.x, newPos.y);
+        await updateConfessionPositionAction(confession.id, newX, newY);
       } catch (err) {
         console.error("Failed to persist note position:", err);
       } finally {
         setIsSaving(false);
       }
     },
-    [confession.id, position, containerRef]
+    [confession.id, position, boardRef]
   );
+
+  const noteColor = (confession.color as NoteColor) || "yellow";
 
   return (
     <motion.div
-      key={confession.id}
       drag
       dragMomentum={false}
-      dragConstraints={containerRef}
+      dragConstraints={boardRef}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={handleDragEnd}
       initial={{ scale: 0, opacity: 0, rotate: confession.rotation_deg }}
@@ -104,7 +91,6 @@ function DraggableNote({ confession, containerRef }: DraggableNoteProps) {
         scale: 1.05,
         rotate: confession.rotation_deg + 2,
         zIndex: 100,
-        filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.5))",
       }}
       whileHover={{ scale: 1.02, zIndex: 50 }}
       style={{
@@ -112,46 +98,44 @@ function DraggableNote({ confession, containerRef }: DraggableNoteProps) {
         left: position.x,
         top: position.y,
         width: 180,
-        background: BG_MAP[confession.color as NoteColor],
-        boxShadow: SHADOW_MAP[confession.color as NoteColor],
+        background: BG_MAP[noteColor],
+        boxShadow: SHADOW_MAP[noteColor],
         cursor: isDragging ? "grabbing" : "grab",
         userSelect: "none",
       }}
       className="rounded-lg p-4 flex flex-col gap-2 min-h-[120px]"
     >
-      {/* Pin decoration */}
       <div
         className="absolute -top-3 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full border-2 border-void/20 flex items-center justify-center"
-        style={{ background: confession.color === "yellow" ? "#c9a232" : confession.color === "pink" ? "#c4674e" : "#7a6faa" }}
+        style={{
+          background:
+            noteColor === "yellow"
+              ? "#c9a232"
+              : noteColor === "pink"
+              ? "#c4674e"
+              : "#7a6faa",
+        }}
       >
         <Pin size={8} className="text-void/60 -rotate-45" />
       </div>
 
-      {/* Note content */}
-      <p
-        className="font-body text-sm leading-relaxed text-void/90 break-words"
-        style={{ fontFamily: "var(--font-dm-sans)" }}
-      >
+      <p className="font-body text-sm leading-relaxed text-void/90 break-words">
         {confession.content}
       </p>
 
-      {/* Footer */}
       <div className="mt-auto flex items-center justify-between">
         <span className="text-[9px] font-mono text-void/50">anonymous</span>
-        {isSaving && (
-          <Loader2 size={10} className="text-void/40 animate-spin" />
-        )}
+        {isSaving && <Loader2 size={10} className="text-void/40 animate-spin" />}
       </div>
     </motion.div>
   );
 }
 
-// ────────────────────────────────────────────
-// POST NOTE FORM
-// ────────────────────────────────────────────
 function PostNoteModal({ onClose }: { onClose: () => void }) {
   const [color, setColor] = useState<NoteColor>("yellow");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [charCount, setCharCount] = useState(0);
 
@@ -206,7 +190,6 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           <form action={handleSubmit} className="flex flex-col gap-4">
-            {/* Hidden color field */}
             <input type="hidden" name="color" value={color} />
 
             <div>
@@ -247,7 +230,9 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="block font-mono text-[11px] text-muted mb-1.5">
                 TULIS SESUATU *{" "}
-                <span className={charCount > 270 ? "text-coral" : "text-muted"}>
+                <span
+                  className={charCount > 270 ? "text-coral" : "text-muted"}
+                >
                   ({charCount}/300)
                 </span>
               </label>
@@ -260,17 +245,6 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setCharCount(e.target.value.length)}
                 className="input-dark resize-none"
               />
-            </div>
-
-            {/* Note preview */}
-            <div
-              className="relative p-4 rounded-xl"
-              style={{ background: BG_MAP[color] }}
-            >
-              <p className="text-[11px] font-mono text-void/50 mb-1">PREVIEW</p>
-              <p className="font-body text-sm text-void/80">
-                {charCount === 0 ? "Note lo bakal keliatan kayak gini..." : ""}
-              </p>
             </div>
 
             {errorMsg && (
@@ -298,22 +272,17 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ────────────────────────────────────────────
-// MAIN CONFESSION BOARD
-// ────────────────────────────────────────────
 export default function ConfessionBoard({
   initialConfessions,
 }: {
   initialConfessions: Confession[];
 }) {
-  const boardRef = useRef<HTMLDivElement>(null!);
+  const boardRef = useRef<HTMLDivElement>(null);
   const [showModal, setShowModal] = useState(false);
 
   return (
     <>
-      {/* ── Board Container ── */}
       <div className="relative">
-        {/* Add note button */}
         <div className="flex justify-center mb-6">
           <motion.button
             whileHover={{ scale: 1.03 }}
@@ -326,7 +295,6 @@ export default function ConfessionBoard({
           </motion.button>
         </div>
 
-        {/* Board */}
         <motion.div
           ref={boardRef}
           initial={{ opacity: 0 }}
@@ -334,10 +302,11 @@ export default function ConfessionBoard({
           className="board-bg relative w-full rounded-2xl border border-border overflow-hidden"
           style={{ height: "700px", minHeight: "600px" }}
         >
-          {/* Cork texture overlay */}
-          <div className="absolute inset-0 opacity-[0.02] bg-repeat pointer-events-none"
+          <div
+            className="absolute inset-0 opacity-[0.02] bg-repeat pointer-events-none"
             style={{
-              backgroundImage: "radial-gradient(circle, #f5c842 1px, transparent 1px)",
+              backgroundImage:
+                "radial-gradient(circle, #f5c842 1px, transparent 1px)",
               backgroundSize: "30px 30px",
             }}
           />
@@ -345,33 +314,28 @@ export default function ConfessionBoard({
           {initialConfessions.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center pointer-events-none">
               <p className="text-4xl">📌</p>
-              <p className="font-display text-xl text-muted">Board masih kosong.</p>
+              <p className="font-display text-xl text-muted">
+                Board masih kosong.
+              </p>
               <p className="font-body text-sm text-muted/60">
                 Jadi yang pertama tempel note!
               </p>
             </div>
           )}
 
-          {/* Render all notes */}
           <AnimatePresence>
             {initialConfessions.map((c) => (
-              <DraggableNote
-                key={c.id}
-                confession={c}
-                containerRef={{ current: boardRef.current }}
-              />
+              <DraggableNote key={c.id} confession={c} boardRef={boardRef as React.RefObject<HTMLDivElement>} />
             ))}
           </AnimatePresence>
         </motion.div>
 
-        {/* Note count */}
         <p className="mt-3 font-mono text-[11px] text-muted text-right">
           {initialConfessions.length} notes terpasang
           {initialConfessions.length > 0 && " — drag untuk memindahkan"}
         </p>
       </div>
 
-      {/* ── Post Modal ── */}
       <AnimatePresence>
         {showModal && <PostNoteModal onClose={() => setShowModal(false)} />}
       </AnimatePresence>
