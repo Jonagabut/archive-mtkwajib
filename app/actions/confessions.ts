@@ -1,6 +1,7 @@
 "use server";
 import { createAdminClient, validatePasscode } from "@/lib/supabase/server";
-import type { NoteColor } from "@/lib/supabase/database.types";
+
+type NoteColor = "yellow" | "pink" | "lavender";
 
 interface ActionResult {
   error?: string;
@@ -16,7 +17,7 @@ export async function postConfessionAction(
   }
 
   const content = (formData.get("content") as string)?.trim();
-  const color = (formData.get("color") as NoteColor) || "yellow";
+  const color   = (formData.get("color") as NoteColor) || "yellow";
 
   if (!content || content.length === 0) {
     return { error: "Tulis sesuatu dulu!" };
@@ -30,11 +31,12 @@ export async function postConfessionAction(
     return { error: "Warna tidak valid." };
   }
 
-  const x_pos = Math.random() * 600 + 40;
-  const y_pos = Math.random() * 400 + 40;
+  const x_pos        = Math.random() * 600 + 40;
+  const y_pos        = Math.random() * 400 + 40;
   const rotation_deg = (Math.random() - 0.5) * 8;
 
   const supabase = createAdminClient();
+
   const { data, error } = await supabase
     .from("confessions")
     .insert({ content, color, x_pos, y_pos, rotation_deg })
@@ -46,7 +48,7 @@ export async function postConfessionAction(
     return { error: "Gagal posting note. Coba lagi." };
   }
 
-  return { data: { id: data.id } };
+  return { data: { id: (data as { id: string }).id } };
 }
 
 export async function updateConfessionPositionAction(
@@ -62,6 +64,7 @@ export async function updateConfessionPositionAction(
   const clampedY = Math.max(0, Math.min(y_pos, 2000));
 
   const supabase = createAdminClient();
+
   const { error } = await supabase
     .from("confessions")
     .update({ x_pos: clampedX, y_pos: clampedY })

@@ -1,18 +1,16 @@
 // app/page.tsx
-import HeroSection    from "@/components/hero/HeroSection";
-import NavBar         from "@/components/layout/NavBar";
-import StudentRoster  from "@/components/roster/StudentRoster";
-import MediaGallery   from "@/components/gallery/MediaGallery";
+import HeroSection     from "@/components/hero/HeroSection";
+import NavBar          from "@/components/layout/NavBar";
+import StudentRoster   from "@/components/roster/StudentRoster";
+import MediaGallery    from "@/components/gallery/MediaGallery";
 import ConfessionBoard from "@/components/board/ConfessionBoard";
-import Footer         from "@/components/layout/Footer";
-import MusicPlayer    from "@/components/music/MusicPlayer";
+import Footer          from "@/components/layout/Footer";
+import MusicPlayer     from "@/components/music/MusicPlayer";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Student, GalleryMedia, Confession } from "@/lib/supabase/database.types";
 import type { Track } from "@/components/music/MusicPlayer";
 
-export const revalidate = 60; // ISR: re-fetch from Supabase every 60 seconds
-
-// ── Data fetchers — all run in parallel via Promise.all ───────────
+export const revalidate = 60;
 
 async function getStudents(): Promise<Student[]> {
   const supabase = createAdminClient();
@@ -20,7 +18,7 @@ async function getStudents(): Promise<Student[]> {
     .from("students")
     .select("*")
     .order("class_number", { ascending: true });
-  return data ?? [];
+  return (data ?? []) as Student[];
 }
 
 async function getGalleryMedia(): Promise<GalleryMedia[]> {
@@ -30,7 +28,7 @@ async function getGalleryMedia(): Promise<GalleryMedia[]> {
     .select("*")
     .order("created_at", { ascending: false })
     .limit(80);
-  return data ?? [];
+  return (data ?? []) as GalleryMedia[];
 }
 
 async function getConfessions(): Promise<Confession[]> {
@@ -40,12 +38,9 @@ async function getConfessions(): Promise<Confession[]> {
     .select("*")
     .order("created_at", { ascending: false })
     .limit(50);
-  return data ?? [];
+  return (data ?? []) as Confession[];
 }
 
-// Fetch songs for the music player from the `songs` table.
-// If the table doesn't exist yet, returns an empty array gracefully
-// rather than crashing the whole page.
 async function getSongs(): Promise<Track[]> {
   try {
     const supabase = createAdminClient();
@@ -57,7 +52,13 @@ async function getSongs(): Promise<Track[]> {
 
     if (error || !data) return [];
 
-    return data.map((row) => ({
+    return (data as Array<{
+      id: string;
+      title: string;
+      artist: string;
+      storage_url: string;
+      cover_url: string | null;
+    }>).map((row) => ({
       id:     row.id,
       title:  row.title,
       artist: row.artist,
@@ -65,12 +66,10 @@ async function getSongs(): Promise<Track[]> {
       cover:  row.cover_url ?? undefined,
     }));
   } catch {
-    // Songs feature is optional — don't let a missing table break the page
     return [];
   }
 }
 
-// ── Page ──────────────────────────────────────────────────────────
 export default async function HomePage() {
   const [students, galleryMedia, confessions, songs] = await Promise.all([
     getStudents(),
@@ -83,18 +82,14 @@ export default async function HomePage() {
     <main className="relative overflow-x-hidden">
       <NavBar />
 
-      {/* ── Hero ── */}
       <HeroSection />
 
-      {/* ── Roster ── */}
-      <section id="roster" className="relative py-24 bg-surface">
+      <section id="roster" className="relative py-16 md:py-24 bg-surface">
         <div className="absolute inset-0 bg-grid-lines bg-grid opacity-100 pointer-events-none" />
         <div className="container mx-auto px-4 md:px-8 relative z-10">
-          <div className="mb-14 text-center">
+          <div className="mb-10 md:mb-14 text-center">
             <p className="section-label mb-3">Angkatan 2026</p>
-            <h2 className="section-title">
-              Warga <span className="text-gold">Kelas</span>
-            </h2>
+            <h2 className="section-title">Warga <span className="text-gold">Kelas</span></h2>
             <p className="mt-4 text-muted max-w-md mx-auto font-body text-sm">
               Semua wajah yang pernah berjuang bareng—dari MTK sampai wisuda.
             </p>
@@ -103,35 +98,27 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Gallery ── */}
-      <section id="gallery" className="relative py-24 bg-void">
+      <section id="gallery" className="relative py-16 md:py-24 bg-void">
         <div className="container mx-auto px-4 md:px-8">
-          <div className="mb-14 text-center">
+          <div className="mb-10 md:mb-14 text-center">
             <p className="section-label mb-3">Memories</p>
-            <h2 className="section-title">
-              The <span className="text-gold">Archive</span>
-            </h2>
+            <h2 className="section-title">The <span className="text-gold">Archive</span></h2>
             <p className="mt-4 text-muted max-w-md mx-auto font-body text-sm">
-              Foto dan video dari semua momen—yang bikin ketawa, nangis, dan
-              malu sekaligus.
+              Foto dan video dari semua momen—yang bikin ketawa, nangis, dan malu sekaligus.
             </p>
           </div>
           <MediaGallery initialMedia={galleryMedia} />
         </div>
       </section>
 
-      {/* ── Confession Board ── */}
-      <section id="board" className="relative py-24 bg-surface">
+      <section id="board" className="relative py-16 md:py-24 bg-surface">
         <div className="absolute inset-0 bg-grid-lines bg-grid opacity-100 pointer-events-none" />
         <div className="container mx-auto px-4 md:px-8 relative z-10">
-          <div className="mb-14 text-center">
+          <div className="mb-10 md:mb-14 text-center">
             <p className="section-label mb-3">Anonymous</p>
-            <h2 className="section-title">
-              Confession <span className="text-gold">Board</span>
-            </h2>
+            <h2 className="section-title">Confession <span className="text-gold">Board</span></h2>
             <p className="mt-4 text-muted max-w-md mx-auto font-body text-sm">
-              Curhat, roast, atau bilang sesuatu yang belum pernah lo bilang
-              langsung.
+              Curhat, roast, atau bilang sesuatu yang belum pernah lo bilang langsung.
             </p>
           </div>
           <ConfessionBoard initialConfessions={confessions} />
@@ -140,7 +127,6 @@ export default async function HomePage() {
 
       <Footer />
 
-      {/* ── Music Player (floating, only renders if songs exist) ── */}
       <MusicPlayer tracks={songs} />
     </main>
   );

@@ -7,10 +7,16 @@
 //   Fresh client per call costs nothing at server-action scale and fixes it.
 //
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "./database.types";
 
+// WHY no <Database> generic here:
+// Newer versions of @supabase/supabase-js (2.44+) changed how they resolve
+// the Database generic at build time. When the generic is present, TypeScript
+// sometimes infers table types as `never` depending on module load order.
+// Removing the generic makes the client untyped but the runtime behavior is
+// identical — all CRUD operations work exactly the same. We enforce types
+// manually in the action files instead.
 export function createAdminClient() {
-  return createClient<Database>(
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
