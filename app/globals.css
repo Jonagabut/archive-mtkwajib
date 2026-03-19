@@ -2,126 +2,202 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Google Fonts: Syne (display) + Plus Jakarta Sans (body) ── */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@400;500&display=swap');
+
 :root {
-  --font-playfair: "Playfair Display", Georgia, serif;
-  --font-dm-sans:  "DM Sans", system-ui, sans-serif;
-  --font-jetbrains: "JetBrains Mono", monospace;
+  /* typography */
+  --font-syne:    'Syne', sans-serif;
+  --font-jakarta: 'Plus Jakarta Sans', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+
+  /* palette — warm dark */
+  --c-bg:       #0c0b0f;
+  --c-surface:  #131218;
+  --c-card:     #1a1920;
+  --c-border:   #2a2835;
+  --c-gold:     #f0b429;
+  --c-gold-dim: #c48f1a;
+  --c-ink:      #ede8df;
+  --c-muted:    #6b6878;
+  --c-faint:    #222030;
+  --c-coral:    #e07560;
+  --c-sage:     #7eb89a;
 
   scrollbar-width: thin;
-  scrollbar-color: #f5c842 #16161f;
+  scrollbar-color: var(--c-gold) var(--c-surface);
 }
 
-::-webkit-scrollbar       { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #0f0f18; }
-::-webkit-scrollbar-thumb { background: #f5c842; border-radius: 3px; }
+::-webkit-scrollbar       { width: 5px; }
+::-webkit-scrollbar-track { background: var(--c-surface); }
+::-webkit-scrollbar-thumb { background: var(--c-gold); border-radius: 4px; }
 
-::selection { background: #f5c84240; color: #f5c842; }
+::selection { background: #f0b42930; color: var(--c-gold); }
 
-/* ── Base ─────────────────────────────────────────────────────── */
+/* ── Base ───────────────────────────────────────────────────── */
 @layer base {
-  h1, h2, h3, h4 { font-family: var(--font-playfair); }
-  body            { font-family: var(--font-dm-sans);  }
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    font-family: var(--font-jakarta);
+    background: var(--c-bg);
+    color: var(--c-ink);
+    -webkit-font-smoothing: antialiased;
+    /* prevent blue link flash on iOS tap */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3, h4 { font-family: var(--font-syne); }
+
+  /* Fix iOS blue link color */
+  a { color: inherit; text-decoration: none; }
+  button { color: inherit; }
 }
 
-/* ── Components ───────────────────────────────────────────────── */
+/* ── Components ─────────────────────────────────────────────── */
 @layer components {
   .section-label {
-    @apply font-mono text-xs tracking-[0.3em] text-gold uppercase;
+    font-family: var(--font-mono);
+    @apply text-[10px] tracking-[0.35em] uppercase;
+    color: var(--c-gold);
   }
 
   .section-title {
-    @apply font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-ink leading-tight;
+    font-family: var(--font-syne);
+    @apply text-[clamp(2rem,6vw,4rem)] font-bold leading-[1.05];
+    color: var(--c-ink);
+  }
+
+  .card-base {
+    background: var(--c-card);
+    border: 1px solid var(--c-border);
+    @apply rounded-2xl;
   }
 
   .card-glass {
-    @apply bg-card/80 backdrop-blur-sm border border-border rounded-2xl;
+    background: rgba(26,25,32,0.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--c-border);
+    @apply rounded-2xl;
   }
 
   .btn-gold {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3
-           bg-gold text-void font-body font-semibold text-sm tracking-wide
-           rounded-xl hover:bg-gold-dim transition-all duration-200
-           hover:shadow-gold-glow active:scale-95;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    background: var(--c-gold);
+    color: #0c0b0f;
+    font-family: var(--font-syne);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
   }
+  .btn-gold:hover  { background: var(--c-gold-dim); box-shadow: 0 0 24px #f0b42930; }
+  .btn-gold:active { transform: scale(0.96); }
 
   .btn-outline {
-    @apply inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3
-           border border-border text-ink font-body font-medium text-sm
-           tracking-wide rounded-xl hover:border-gold hover:text-gold
-           transition-all duration-200 active:scale-95;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    background: transparent;
+    color: var(--c-ink);
+    font-family: var(--font-syne);
+    font-weight: 500;
+    font-size: 13px;
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
   }
+  .btn-outline:hover  { border-color: var(--c-gold); color: var(--c-gold); }
+  .btn-outline:active { transform: scale(0.96); }
 
   .input-dark {
-    @apply w-full bg-faint border border-border rounded-xl px-4 py-3
-           text-ink text-sm placeholder-muted
-           focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold/30
-           transition-all duration-200;
+    width: 100%;
+    background: var(--c-faint);
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--c-ink);
+    font-family: var(--font-jakarta);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    /* fix iOS auto-zoom on focus (font-size must be >= 16px equivalent) */
+    font-size: max(16px, 14px);
+  }
+  .input-dark::placeholder { color: var(--c-muted); }
+  .input-dark:focus {
+    border-color: var(--c-gold);
+    box-shadow: 0 0 0 3px #f0b42918;
   }
 
   /* Masonry */
   .masonry-grid   { display: flex; margin-left: -12px; width: auto; }
   .masonry-column { padding-left: 12px; background-clip: padding-box; }
-
   @screen md {
     .masonry-grid   { margin-left: -16px; }
     .masonry-column { padding-left: 16px; }
   }
 
-  /* 3D flip card */
+  /* Flip card */
   .flip-card { perspective: 1200px; }
-
   .flip-card-inner {
-    position: relative;
-    width: 100%; height: 100%;
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative; width: 100%; height: 100%;
+    transition: transform 0.65s cubic-bezier(0.4,0,0.2,1);
     transform-style: preserve-3d;
   }
-
   .flip-card:hover .flip-card-inner,
   .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
-
-  .flip-card-front,
-  .flip-card-back {
+  .flip-card-front, .flip-card-back {
     position: absolute; width: 100%; height: 100%;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
   }
-
   .flip-card-back { transform: rotateY(180deg); }
 
   /* Countdown segment */
   .countdown-segment {
-    @apply flex flex-col items-center justify-center
-           bg-faint border border-border rounded-2xl
-           p-3 sm:p-4 min-w-[64px] sm:min-w-[80px];
+    @apply flex flex-col items-center justify-center rounded-2xl p-3 sm:p-4 min-w-[60px] sm:min-w-[76px];
+    background: var(--c-faint);
+    border: 1px solid var(--c-border);
   }
 }
 
-/* ── Hero ─────────────────────────────────────────────────────── */
+/* ── Hero ───────────────────────────────────────────────────── */
 .hero-text-shadow {
-  text-shadow: 0 0 80px rgba(245, 200, 66, 0.3), 0 4px 30px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 60px rgba(240,180,41,0.25), 0 4px 24px rgba(0,0,0,0.7);
 }
 
-/* ── Lightbox ─────────────────────────────────────────────────── */
-.lightbox-overlay { backdrop-filter: blur(20px) saturate(0.5); }
-
-/* ── Confession Board ─────────────────────────────────────────── */
+/* ── Board ──────────────────────────────────────────────────── */
 .board-bg {
   background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(245, 200, 66, 0.04) 39px, rgba(245, 200, 66, 0.04) 40px),
-    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(245, 200, 66, 0.04) 39px, rgba(245, 200, 66, 0.04) 40px);
+    radial-gradient(circle at 20% 30%, rgba(240,180,41,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(126,184,154,0.03) 0%, transparent 50%);
 }
 
-/* ── Safe area padding for floating music player on iPhone ──────
-   Without this, the player sits behind the iOS home indicator bar. */
+/* ── Lightbox ───────────────────────────────────────────────── */
+.lightbox-overlay { backdrop-filter: blur(24px) saturate(0.4); }
+
+/* ── Safe area (iOS home bar) ───────────────────────────────── */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 }
 
-/* ── xs breakpoint (320px) — used by hero CTA buttons ─────────── */
+/* ── Prevent iOS blue highlight on interactive elements ─────── */
+a, button, [role="button"] { -webkit-tap-highlight-color: transparent; }
+
+/* ── xs utility (375px) ─────────────────────────────────────── */
 @media (min-width: 375px) {
-  .xs\:flex-row { flex-direction: row; }
-  .xs\:w-auto   { width: auto; }
+  .xs\:flex-row  { flex-direction: row; }
+  .xs\:w-auto    { width: auto; }
 }
