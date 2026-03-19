@@ -4,7 +4,6 @@ import NavBar         from "@/components/layout/NavBar";
 import StudentRoster  from "@/components/roster/StudentRoster";
 import MediaGallery   from "@/components/gallery/MediaGallery";
 import ConfessionBoard from "@/components/board/ConfessionBoard";
-import TimeCapsule    from "@/components/capsule/TimeCapsule";
 import Footer         from "@/components/layout/Footer";
 import MusicPlayer    from "@/components/music/MusicPlayer";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -137,11 +136,6 @@ export default async function HomePage() {
           </div>
           <ConfessionBoard initialConfessions={confessions} />
         </div>
-      </section>
-
-      {/* ── Time Capsule ── */}
-      <section id="capsule" className="relative py-24 bg-void overflow-hidden">
-        <TimeCapsule />
       </section>
 
       <Footer />
