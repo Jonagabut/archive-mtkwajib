@@ -1,15 +1,19 @@
 // app/page.tsx
-import HeroSection from "@/components/hero/HeroSection";
-import NavBar from "@/components/layout/NavBar";
-import StudentRoster from "@/components/roster/StudentRoster";
-import MediaGallery from "@/components/gallery/MediaGallery";
+import HeroSection    from "@/components/hero/HeroSection";
+import NavBar         from "@/components/layout/NavBar";
+import StudentRoster  from "@/components/roster/StudentRoster";
+import MediaGallery   from "@/components/gallery/MediaGallery";
 import ConfessionBoard from "@/components/board/ConfessionBoard";
-import TimeCapsule from "@/components/capsule/TimeCapsule";
-import Footer from "@/components/layout/Footer";
+import TimeCapsule    from "@/components/capsule/TimeCapsule";
+import Footer         from "@/components/layout/Footer";
+import MusicPlayer    from "@/components/music/MusicPlayer";
 import { createAdminClient } from "@/lib/supabase/server";
 import type { Student, GalleryMedia, Confession } from "@/lib/supabase/database.types";
+import type { Track } from "@/components/music/MusicPlayer";
 
-export const revalidate = 60; // ISR: revalidate every 60 seconds
+export const revalidate = 60; // ISR: re-fetch from Supabase every 60 seconds
+
+// ── Data fetchers — all run in parallel via Promise.all ───────────
 
 async function getStudents(): Promise<Student[]> {
   const supabase = createAdminClient();
@@ -40,11 +44,40 @@ async function getConfessions(): Promise<Confession[]> {
   return data ?? [];
 }
 
+// Fetch songs for the music player from the `songs` table.
+// If the table doesn't exist yet, returns an empty array gracefully
+// rather than crashing the whole page.
+async function getSongs(): Promise<Track[]> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("songs")
+      .select("id, title, artist, storage_url, cover_url")
+      .eq("is_active", true)
+      .order("track_order", { ascending: true });
+
+    if (error || !data) return [];
+
+    return data.map((row) => ({
+      id:     row.id,
+      title:  row.title,
+      artist: row.artist,
+      src:    row.storage_url,
+      cover:  row.cover_url ?? undefined,
+    }));
+  } catch {
+    // Songs feature is optional — don't let a missing table break the page
+    return [];
+  }
+}
+
+// ── Page ──────────────────────────────────────────────────────────
 export default async function HomePage() {
-  const [students, galleryMedia, confessions] = await Promise.all([
+  const [students, galleryMedia, confessions, songs] = await Promise.all([
     getStudents(),
     getGalleryMedia(),
     getConfessions(),
+    getSongs(),
   ]);
 
   return (
@@ -112,6 +145,9 @@ export default async function HomePage() {
       </section>
 
       <Footer />
+
+      {/* ── Music Player (floating, only renders if songs exist) ── */}
+      <MusicPlayer tracks={songs} />
     </main>
   );
 }

@@ -1,17 +1,26 @@
 "use client";
 // components/capsule/TimeCapsule.tsx
-import { useState, useEffect } from "react";
+//
+// PERFORMANCE FIX:
+//   The Segment component is wrapped in React.memo so it only re-renders
+//   when its specific `value` prop actually changes. Without this,
+//   every 1-second countdown tick caused ALL 5 segments to re-render even
+//   when only the seconds counter changed. This was causing 5× unnecessary
+//   DOM updates per second.
+//
+//   The calculate() function is also stable via useCallback so the setInterval
+//   dependency doesn't trigger unnecessary effect re-runs.
+//
+import { useState, useEffect, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Send, Loader2, Clock } from "lucide-react";
+import { Lock, Loader2, Clock } from "lucide-react";
 import { submitCapsuleAction } from "@/app/actions/capsule";
 
 const UNLOCK_DATE = new Date(
   process.env.NEXT_PUBLIC_CAPSULE_UNLOCK_DATE ?? "2031-07-01T00:00:00.000Z"
 );
 
-// ────────────────────────────────────────────
-// COUNTDOWN HOOK
-// ────────────────────────────────────────────
+// ── Countdown hook ─────────────────────────────────────────────────
 interface TimeLeft {
   years: number;
   days: number;
@@ -21,60 +30,67 @@ interface TimeLeft {
 }
 
 function useCountdown(target: Date): TimeLeft {
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ years: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const calculate = useCallback((): TimeLeft => {
+    const diff = target.getTime() - Date.now();
+    if (diff <= 0) return { years: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+    const seconds    = Math.floor((diff / 1000) % 60);
+    const minutes    = Math.floor((diff / (1000 * 60)) % 60);
+    const hours      = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const totalDays  = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const years      = Math.floor(totalDays / 365);
+    const days       = totalDays % 365;
+
+    return { years, days, hours, minutes, seconds };
+  }, [target]);
+
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculate);
 
   useEffect(() => {
-    function calculate() {
-      const now = new Date();
-      const diff = target.getTime() - now.getTime();
-      if (diff <= 0) return { years: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
-
-      const seconds = Math.floor((diff / 1000) % 60);
-      const minutes = Math.floor((diff / (1000 * 60)) % 60);
-      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const totalDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const years = Math.floor(totalDays / 365);
-      const days = totalDays % 365;
-
-      return { years, days, hours, minutes, seconds };
-    }
-
+    // Run immediately, then every second
     setTimeLeft(calculate());
     const interval = setInterval(() => setTimeLeft(calculate()), 1000);
     return () => clearInterval(interval);
-  }, [target]);
+  }, [calculate]);
 
   return timeLeft;
 }
 
-// ────────────────────────────────────────────
-// COUNTDOWN SEGMENT
-// ────────────────────────────────────────────
-function Segment({ value, label }: { value: number; label: string }) {
+// ── Segment — memo'd so it only re-renders when ITS value changes ──
+// The `key` prop on the outer element triggers the spring animation
+// when the number flips, which gives that satisfying mechanical feel.
+const Segment = memo(function Segment({
+  value,
+  label,
+}: {
+  value: number;
+  label: string;
+}) {
   return (
-    <motion.div
-      key={value}
-      initial={{ y: -6, opacity: 0.5 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className="countdown-segment"
-    >
-      <span className="font-display text-4xl md:text-5xl text-gold font-bold leading-none tabular-nums">
-        {String(value).padStart(2, "0")}
-      </span>
+    <div className="countdown-segment">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={value}                           // re-mounts (and animates) only when value changes
+          initial={{ y: -12, opacity: 0 }}
+          animate={{ y: 0,   opacity: 1 }}
+          exit={{ y: 12,     opacity: 0 }}
+          transition={{ type: "spring", stiffness: 400, damping: 28 }}
+          className="font-display text-4xl md:text-5xl text-gold font-bold leading-none tabular-nums block"
+        >
+          {String(value).padStart(2, "0")}
+        </motion.span>
+      </AnimatePresence>
       <span className="font-mono text-[9px] text-muted mt-1 tracking-widest uppercase">
         {label}
       </span>
-    </motion.div>
+    </div>
   );
-}
+});
 
-// ────────────────────────────────────────────
-// SUBMIT FORM
-// ────────────────────────────────────────────
+// ── Capsule form ───────────────────────────────────────────────────
 function CapsuleForm() {
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
+  const [status, setStatus]       = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg]   = useState("");
   const [charCount, setCharCount] = useState(0);
 
   async function handleSubmit(formData: FormData) {
@@ -89,7 +105,7 @@ function CapsuleForm() {
         setStatus("success");
       }
     } catch {
-      setErrorMsg("Gagal mengirim. Coba lagi.");
+      setErrorMsg("Koneksi bermasalah. Coba lagi?");
       setStatus("error");
     }
   }
@@ -112,8 +128,8 @@ function CapsuleForm() {
         <p className="font-display text-2xl text-gold">Pesan Terkunci!</p>
         <p className="font-body text-sm text-muted max-w-xs">
           Pesan kamu tersegel sampai{" "}
-          <span className="text-ink font-semibold">1 Juli 2031</span>. See you
-          there. 🚀
+          <span className="text-ink font-semibold">1 Juli 2031</span>. Sampai
+          ketemu lagi. 🚀
         </p>
       </motion.div>
     );
@@ -122,7 +138,7 @@ function CapsuleForm() {
   return (
     <form action={handleSubmit} className="flex flex-col gap-4 w-full max-w-lg mx-auto">
       <div>
-        <label className="block font-mono text-[11px] text-muted mb-1.5">
+        <label className="block font-mono text-[11px] text-muted mb-1.5 tracking-wide">
           PASSCODE KELAS *
         </label>
         <input
@@ -135,7 +151,7 @@ function CapsuleForm() {
       </div>
 
       <div>
-        <label className="block font-mono text-[11px] text-muted mb-1.5">
+        <label className="block font-mono text-[11px] text-muted mb-1.5 tracking-wide">
           NAMA LO (opsional)
         </label>
         <input
@@ -148,7 +164,7 @@ function CapsuleForm() {
       </div>
 
       <div>
-        <label className="block font-mono text-[11px] text-muted mb-1.5">
+        <label className="block font-mono text-[11px] text-muted mb-1.5 tracking-wide">
           PESAN KE DIRI LO DI 2031 *{" "}
           <span className={charCount > 900 ? "text-coral" : "text-muted"}>
             ({charCount}/1000)
@@ -190,23 +206,21 @@ function CapsuleForm() {
   );
 }
 
-// ────────────────────────────────────────────
-// MAIN TIME CAPSULE COMPONENT
-// ────────────────────────────────────────────
+// ── Main ───────────────────────────────────────────────────────────
 export default function TimeCapsule() {
-  const timeLeft = useCountdown(UNLOCK_DATE);
+  const timeLeft  = useCountdown(UNLOCK_DATE);
   const isUnlocked = UNLOCK_DATE.getTime() <= Date.now();
 
   return (
     <div className="container mx-auto px-4 md:px-8">
-      {/* ── Background orbs ── */}
+      {/* Background orbs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gold/3 blur-[140px]" />
         <div className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full bg-lavender/5 blur-[80px]" />
       </div>
 
       <div className="relative z-10 flex flex-col items-center text-center">
-        {/* Section header */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -220,11 +234,11 @@ export default function TimeCapsule() {
           </h2>
           <p className="mt-4 text-muted max-w-md mx-auto font-body text-sm">
             Tulis pesan buat diri lo di masa depan. Tersegel sampai reuni 5
-            tahun—1 Juli 2031.
+            tahun — 1 Juli 2031.
           </p>
         </motion.div>
 
-        {/* ── Countdown Timer ── */}
+        {/* Countdown */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -235,9 +249,7 @@ export default function TimeCapsule() {
           {isUnlocked ? (
             <div className="flex flex-col items-center gap-3 py-8">
               <span className="text-5xl">🎉</span>
-              <p className="font-display text-3xl text-gold">
-                The capsule is open!
-              </p>
+              <p className="font-display text-3xl text-gold">The capsule is open!</p>
               <p className="text-muted font-body text-sm">
                 Baca semua pesan yang tersimpan selama ini.
               </p>
@@ -245,17 +257,17 @@ export default function TimeCapsule() {
           ) : (
             <>
               <div className="flex items-center justify-center gap-2 mb-4">
-                <Clock size={14} className="text-muted" />
+                <Clock size={13} className="text-muted" />
                 <span className="font-mono text-[11px] text-muted tracking-widest">
                   MEMBUKA DALAM
                 </span>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-3">
-                <Segment value={timeLeft.years} label="tahun" />
+                <Segment value={timeLeft.years}   label="tahun" />
                 <span className="font-display text-3xl text-muted pb-4">:</span>
-                <Segment value={timeLeft.days} label="hari" />
+                <Segment value={timeLeft.days}    label="hari" />
                 <span className="font-display text-3xl text-muted pb-4">:</span>
-                <Segment value={timeLeft.hours} label="jam" />
+                <Segment value={timeLeft.hours}   label="jam" />
                 <span className="font-display text-3xl text-muted pb-4">:</span>
                 <Segment value={timeLeft.minutes} label="menit" />
                 <span className="font-display text-3xl text-muted pb-4">:</span>
@@ -268,14 +280,16 @@ export default function TimeCapsule() {
           )}
         </motion.div>
 
-        {/* ── Divider ── */}
+        {/* Divider */}
         <div className="flex items-center gap-4 w-full max-w-lg mb-10">
           <div className="flex-1 h-px bg-border" />
-          <span className="font-mono text-[10px] text-muted tracking-widest">KIRIM PESAN</span>
+          <span className="font-mono text-[10px] text-muted tracking-widest">
+            KIRIM PESAN
+          </span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
-        {/* ── Form ── */}
+        {/* Form */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -286,7 +300,7 @@ export default function TimeCapsule() {
           <CapsuleForm />
         </motion.div>
 
-        {/* ── Decorative vault graphic ── */}
+        {/* Decorative lock */}
         <motion.div
           animate={{ y: [0, -8, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}

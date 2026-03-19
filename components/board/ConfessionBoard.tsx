@@ -1,31 +1,55 @@
 "use client";
-import { useState, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Loader2, Pin } from "lucide-react";
+// components/board/ConfessionBoard.tsx
+//
+// WHY this component is designed this way:
+//   The original version had two distinct bugs that this rewrite fixes:
+//   1. DRAG POSITION BUG — mixing React state (left/top CSS) with Framer Motion's
+//      internal transform system caused notes to "snap" after drag. The fix is to
+//      drive position entirely through MotionValues (x/y) at left:0,top:0,
+//      so Framer Motion owns the position from start to finish.
+//   2. NO LIVE UPDATES — new notes only appeared after hard refresh. Adding a
+//      Supabase Realtime subscription means notes from classmates pop in instantly.
+//
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence, useMotionValue } from "framer-motion";
+import { Plus, X, Loader2, Pin, Wifi, WifiOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import type { Confession, NoteColor } from "@/lib/supabase/database.types";
 import {
   postConfessionAction,
   updateConfessionPositionAction,
 } from "@/app/actions/confessions";
 
-const COLOR_OPTIONS: { value: NoteColor; label: string; preview: string }[] = [
-  { value: "yellow", label: "Yellow", preview: "#f5e27a" },
-  { value: "pink", label: "Pink", preview: "#f7b8a0" },
-  { value: "lavender", label: "Lavender", preview: "#c4b8f0" },
-];
-
+// ── Color maps ───────────────────────────────────────────────────
 const SHADOW_MAP: Record<NoteColor, string> = {
   yellow: "4px 4px 0px #c9a232, 8px 8px 20px rgba(0,0,0,0.4)",
-  pink: "4px 4px 0px #c4674e, 8px 8px 20px rgba(0,0,0,0.4)",
+  pink:   "4px 4px 0px #c4674e, 8px 8px 20px rgba(0,0,0,0.4)",
   lavender: "4px 4px 0px #7a6faa, 8px 8px 20px rgba(0,0,0,0.4)",
 };
 
 const BG_MAP: Record<NoteColor, string> = {
-  yellow: "linear-gradient(135deg, #f5e27a 0%, #f0d84a 50%, #e8cc30 100%)",
-  pink: "linear-gradient(135deg, #f7b8a0 0%, #f0956e 50%, #e87850 100%)",
+  yellow:   "linear-gradient(135deg, #f5e27a 0%, #f0d84a 50%, #e8cc30 100%)",
+  pink:     "linear-gradient(135deg, #f7b8a0 0%, #f0956e 50%, #e87850 100%)",
   lavender: "linear-gradient(135deg, #c4b8f0 0%, #a898e0 50%, #9080d0 100%)",
 };
 
+const PIN_COLOR_MAP: Record<NoteColor, string> = {
+  yellow:   "#c9a232",
+  pink:     "#c4674e",
+  lavender: "#7a6faa",
+};
+
+const COLOR_OPTIONS: { value: NoteColor; label: string; preview: string }[] = [
+  { value: "yellow",   label: "Kuning",   preview: "#f5e27a" },
+  { value: "pink",     label: "Pink",     preview: "#f7b8a0" },
+  { value: "lavender", label: "Lavender", preview: "#c4b8f0" },
+];
+
+// ── DraggableNote ─────────────────────────────────────────────────
+// Using useMotionValue instead of useState for position because we need
+// Framer Motion to be the single source of truth for the element's position.
+// Mixing CSS left/top with FM transforms causes a one-frame snap on drag end.
 function DraggableNote({
   confession,
   boardRef,
@@ -33,53 +57,58 @@ function DraggableNote({
   confession: Confession;
   boardRef: React.RefObject<HTMLDivElement>;
 }) {
-  const [position, setPosition] = useState({
-    x: confession.x_pos,
-    y: confession.y_pos,
-  });
+  // Let Framer Motion own the x/y — element is at left:0, top:0 in CSS,
+  // and these motion values handle the visual offset
+  const x = useMotionValue(confession.x_pos);
+  const y = useMotionValue(confession.y_pos);
+
   const [isDragging, setIsDragging] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleDragEnd = useCallback(
-    async (
-      _event: MouseEvent | TouchEvent | PointerEvent,
-      info: { offset: { x: number; y: number } }
-    ) => {
-      setIsDragging(false);
-      if (!boardRef.current) return;
-
-      const containerRect = boardRef.current.getBoundingClientRect();
-      const newX = Math.max(
-        0,
-        Math.min(position.x + info.offset.x, containerRect.width - 200)
-      );
-      const newY = Math.max(
-        0,
-        Math.min(position.y + info.offset.y, containerRect.height - 180)
-      );
-
-      setPosition({ x: newX, y: newY });
-      setIsSaving(true);
-      try {
-        await updateConfessionPositionAction(confession.id, newX, newY);
-      } catch (err) {
-        console.error("Failed to persist note position:", err);
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [confession.id, position, boardRef]
-  );
+  const [isSaving, setIsSaving]   = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   const noteColor = (confession.color as NoteColor) || "yellow";
+
+  const handleDragEnd = useCallback(async () => {
+    setIsDragging(false);
+
+    // x.get() / y.get() already reflect the constrained final position —
+    // no manual clamping needed because dragConstraints handled it
+    const finalX = x.get();
+    const finalY = y.get();
+
+    setIsSaving(true);
+    setSaveFailed(false);
+
+    try {
+      const result = await updateConfessionPositionAction(confession.id, finalX, finalY);
+      if (result.error) setSaveFailed(true);
+    } catch {
+      // Don't surface this error loudly — position save is a nice-to-have
+      setSaveFailed(true);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [confession.id, x, y]);
 
   return (
     <motion.div
       drag
       dragMomentum={false}
       dragConstraints={boardRef}
-      onDragStart={() => setIsDragging(true)}
-      onDragEnd={handleDragEnd}
+      style={{
+        x,
+        y,
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: 180,
+        background: BG_MAP[noteColor],
+        boxShadow: isDragging
+          ? `6px 6px 0px ${PIN_COLOR_MAP[noteColor]}, 12px 12px 30px rgba(0,0,0,0.6)`
+          : SHADOW_MAP[noteColor],
+        cursor: isDragging ? "grabbing" : "grab",
+        userSelect: "none",
+      }}
       initial={{ scale: 0, opacity: 0, rotate: confession.rotation_deg }}
       animate={{
         scale: 1,
@@ -88,33 +117,19 @@ function DraggableNote({
         zIndex: isDragging ? 100 : 1,
       }}
       whileDrag={{
-        scale: 1.05,
+        scale: 1.06,
         rotate: confession.rotation_deg + 2,
         zIndex: 100,
       }}
       whileHover={{ scale: 1.02, zIndex: 50 }}
-      style={{
-        position: "absolute",
-        left: position.x,
-        top: position.y,
-        width: 180,
-        background: BG_MAP[noteColor],
-        boxShadow: SHADOW_MAP[noteColor],
-        cursor: isDragging ? "grabbing" : "grab",
-        userSelect: "none",
-      }}
+      onDragStart={() => setIsDragging(true)}
+      onDragEnd={handleDragEnd}
       className="rounded-lg p-4 flex flex-col gap-2 min-h-[120px]"
     >
+      {/* Push pin */}
       <div
         className="absolute -top-3 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full border-2 border-void/20 flex items-center justify-center"
-        style={{
-          background:
-            noteColor === "yellow"
-              ? "#c9a232"
-              : noteColor === "pink"
-              ? "#c4674e"
-              : "#7a6faa",
-        }}
+        style={{ background: PIN_COLOR_MAP[noteColor] }}
       >
         <Pin size={8} className="text-void/60 -rotate-45" />
       </div>
@@ -124,18 +139,32 @@ function DraggableNote({
       </p>
 
       <div className="mt-auto flex items-center justify-between">
-        <span className="text-[9px] font-mono text-void/50">anonymous</span>
-        {isSaving && <Loader2 size={10} className="text-void/40 animate-spin" />}
+        <span className="text-[9px] font-mono text-void/50">anonim</span>
+        <div className="flex items-center gap-1">
+          {isSaving && (
+            <Loader2 size={9} className="text-void/40 animate-spin" />
+          )}
+          {saveFailed && !isSaving && (
+            <span className="text-[8px] text-void/40" title="Posisi gagal disimpan">
+              ⚠
+            </span>
+          )}
+        </div>
       </div>
     </motion.div>
   );
 }
 
-function PostNoteModal({ onClose }: { onClose: () => void }) {
-  const [color, setColor] = useState<NoteColor>("yellow");
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
+// ── Post Note Modal ───────────────────────────────────────────────
+function PostNoteModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: (newNote: Confession) => void;
+}) {
+  const [color, setColor]       = useState<NoteColor>("yellow");
+  const [status, setStatus]     = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [charCount, setCharCount] = useState(0);
 
@@ -149,13 +178,24 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
         setStatus("error");
       } else {
         setStatus("success");
-        setTimeout(() => {
-          onClose();
-          window.location.reload();
-        }, 1500);
+        // Optimistically add the new note to the board without a page reload.
+        // We reconstruct the shape because the server doesn't return the full row.
+        if (result.data) {
+          const optimisticNote: Confession = {
+            id: result.data.id,
+            content: formData.get("content") as string,
+            color: color,
+            x_pos: Math.random() * 600 + 40,
+            y_pos: Math.random() * 400 + 40,
+            rotation_deg: (Math.random() - 0.5) * 8,
+            created_at: new Date().toISOString(),
+          };
+          onSuccess(optimisticNote);
+        }
+        setTimeout(onClose, 1400);
       }
     } catch {
-      setErrorMsg("Gagal posting. Coba lagi.");
+      setErrorMsg("Waduh, gagal posting. Coba sekali lagi?");
       setStatus("error");
     }
   }
@@ -178,36 +218,43 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-display text-lg text-ink">Tempel Note</h3>
-          <button onClick={onClose} className="text-muted hover:text-ink">
+          <button onClick={onClose} className="text-muted hover:text-ink transition-colors">
             <X size={18} />
           </button>
         </div>
 
         {status === "success" ? (
-          <div className="text-center py-6">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-center py-6"
+          >
             <p className="text-3xl mb-2">📌</p>
             <p className="font-display text-lg text-gold">Note ditempel!</p>
-          </div>
+            <p className="font-body text-sm text-muted mt-1">
+              Muncul di board sekarang.
+            </p>
+          </motion.div>
         ) : (
           <form action={handleSubmit} className="flex flex-col gap-4">
             <input type="hidden" name="color" value={color} />
 
             <div>
-              <label className="block font-mono text-[11px] text-muted mb-1.5">
-                PASSCODE *
+              <label className="block font-mono text-[11px] text-muted mb-1.5 tracking-wide">
+                PASSCODE KELAS *
               </label>
               <input
                 name="passcode"
                 type="password"
-                placeholder="Masukkan passcode kelas"
+                placeholder="Yang tau cuma kita-kita aja"
                 required
                 className="input-dark"
               />
             </div>
 
             <div>
-              <label className="block font-mono text-[11px] text-muted mb-1.5">
-                WARNA NOTE
+              <label className="block font-mono text-[11px] text-muted mb-1.5 tracking-wide">
+                PILIH WARNA
               </label>
               <div className="flex gap-2">
                 {COLOR_OPTIONS.map((opt) => (
@@ -217,8 +264,8 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
                     onClick={() => setColor(opt.value)}
                     className={`w-8 h-8 rounded-full border-2 transition-all ${
                       color === opt.value
-                        ? "border-ink scale-110"
-                        : "border-transparent scale-100"
+                        ? "border-ink scale-110 shadow-md"
+                        : "border-transparent scale-100 hover:scale-105"
                     }`}
                     style={{ background: opt.preview }}
                     title={opt.label}
@@ -228,11 +275,9 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
             </div>
 
             <div>
-              <label className="block font-mono text-[11px] text-muted mb-1.5">
+              <label className="block font-mono text-[11px] text-muted mb-1.5 tracking-wide">
                 TULIS SESUATU *{" "}
-                <span
-                  className={charCount > 270 ? "text-coral" : "text-muted"}
-                >
+                <span className={charCount > 270 ? "text-coral" : "text-muted"}>
                   ({charCount}/300)
                 </span>
               </label>
@@ -241,7 +286,7 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
                 required
                 maxLength={300}
                 rows={4}
-                placeholder="Rahasia, roast, atau hal yang pengen lo sampaikan..."
+                placeholder="Rahasia, roast, hal yang lo mau bilang tapi ga pernah sempat..."
                 onChange={(e) => setCharCount(e.target.value.length)}
                 className="input-dark resize-none"
               />
@@ -263,7 +308,7 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
               ) : (
                 <Pin size={14} />
               )}
-              {status === "loading" ? "Posting..." : "Tempel Note"}
+              {status === "loading" ? "Lagi nempel..." : "Tempel ke Board"}
             </button>
           </form>
         )}
@@ -272,18 +317,97 @@ function PostNoteModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Realtime connection indicator ─────────────────────────────────
+// Small badge that tells users the board is live without being annoying
+function RealtimeStatus({ connected }: { connected: boolean }) {
+  return (
+    <div
+      className={`flex items-center gap-1.5 font-mono text-[10px] transition-colors duration-500 ${
+        connected ? "text-muted" : "text-coral/70"
+      }`}
+      title={connected ? "Board aktif — note baru langsung muncul" : "Koneksi terputus"}
+    >
+      {connected ? (
+        <>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>live</span>
+        </>
+      ) : (
+        <>
+          <WifiOff size={10} />
+          <span>offline</span>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Main ConfessionBoard ──────────────────────────────────────────
 export default function ConfessionBoard({
   initialConfessions,
 }: {
   initialConfessions: Confession[];
 }) {
-  const boardRef = useRef<HTMLDivElement>(null);
-  const [showModal, setShowModal] = useState(false);
+  const boardRef   = useRef<HTMLDivElement>(null);
+  const [showModal, setShowModal]       = useState(false);
+  const [confessions, setConfessions]   = useState<Confession[]>(initialConfessions);
+  const [realtimeOk, setRealtimeOk]     = useState(false);
+
+  // Subscribe to new confessions and position updates so the board feels "alive"
+  // even before anyone refreshes the page.
+  useEffect(() => {
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel("confessions-board-live")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "confessions" },
+        (payload) => {
+          setConfessions((prev) => {
+            // The optimistic update in PostNoteModal might have already added this.
+            // Skip duplicates so notes don't flash or double up.
+            if (prev.some((c) => c.id === payload.new.id)) return prev;
+            return [payload.new as Confession, ...prev];
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "confessions" },
+        (payload) => {
+          // Someone else dragged a note — reflect their move locally
+          setConfessions((prev) =>
+            prev.map((c) =>
+              c.id === payload.new.id ? { ...c, ...payload.new } : c
+            )
+          );
+        }
+      )
+      .subscribe((status) => {
+        setRealtimeOk(status === "SUBSCRIBED");
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // When the local user posts a new note successfully, add it to local state.
+  // This way the board updates instantly without any page reload.
+  const handleNotePosted = useCallback((newNote: Confession) => {
+    setConfessions((prev) => {
+      if (prev.some((c) => c.id === newNote.id)) return prev;
+      return [newNote, ...prev];
+    });
+  }, []);
 
   return (
     <>
       <div className="relative">
-        <div className="flex justify-center mb-6">
+        {/* ── Toolbar ── */}
+        <div className="flex items-center justify-between mb-6">
+          <RealtimeStatus connected={realtimeOk} />
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -295,6 +419,7 @@ export default function ConfessionBoard({
           </motion.button>
         </div>
 
+        {/* ── Board canvas ── */}
         <motion.div
           ref={boardRef}
           initial={{ opacity: 0 }}
@@ -302,42 +427,50 @@ export default function ConfessionBoard({
           className="board-bg relative w-full rounded-2xl border border-border overflow-hidden"
           style={{ height: "700px", minHeight: "600px" }}
         >
+          {/* Subtle dot texture */}
           <div
             className="absolute inset-0 opacity-[0.02] bg-repeat pointer-events-none"
             style={{
-              backgroundImage:
-                "radial-gradient(circle, #f5c842 1px, transparent 1px)",
+              backgroundImage: "radial-gradient(circle, #f5c842 1px, transparent 1px)",
               backgroundSize: "30px 30px",
             }}
           />
 
-          {initialConfessions.length === 0 && (
+          {/* Empty state */}
+          {confessions.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center pointer-events-none">
               <p className="text-4xl">📌</p>
-              <p className="font-display text-xl text-muted">
-                Board masih kosong.
-              </p>
+              <p className="font-display text-xl text-muted">Board masih kosong.</p>
               <p className="font-body text-sm text-muted/60">
-                Jadi yang pertama tempel note!
+                Jadi yang pertama!
               </p>
             </div>
           )}
 
           <AnimatePresence>
-            {initialConfessions.map((c) => (
-              <DraggableNote key={c.id} confession={c} boardRef={boardRef as React.RefObject<HTMLDivElement>} />
+            {confessions.map((c) => (
+              <DraggableNote
+                key={c.id}
+                confession={c}
+                boardRef={boardRef as React.RefObject<HTMLDivElement>}
+              />
             ))}
           </AnimatePresence>
         </motion.div>
 
         <p className="mt-3 font-mono text-[11px] text-muted text-right">
-          {initialConfessions.length} notes terpasang
-          {initialConfessions.length > 0 && " — drag untuk memindahkan"}
+          {confessions.length} note{confessions.length !== 1 ? "s" : ""} di board
+          {confessions.length > 0 && " — drag buat pindah-pindahin"}
         </p>
       </div>
 
       <AnimatePresence>
-        {showModal && <PostNoteModal onClose={() => setShowModal(false)} />}
+        {showModal && (
+          <PostNoteModal
+            onClose={() => setShowModal(false)}
+            onSuccess={handleNotePosted}
+          />
+        )}
       </AnimatePresence>
     </>
   );
