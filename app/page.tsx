@@ -1,4 +1,3 @@
-// app/page.tsx
 import HeroSection     from "@/components/hero/HeroSection";
 import NavBar          from "@/components/layout/NavBar";
 import StudentRoster   from "@/components/roster/StudentRoster";
@@ -28,7 +27,7 @@ async function getGalleryMedia(): Promise<GalleryMedia[]> {
 async function getConfessions(): Promise<Confession[]> {
   const { data } = await createAdminClient()
     .from("confessions").select("*")
-    .order("created_at", { ascending: false }).limit(50);
+    .order("created_at", { ascending: false }).limit(100);
   return (data ?? []) as Confession[];
 }
 
@@ -38,8 +37,8 @@ async function getSongs(): Promise<Track[]> {
       .from("songs").select("id,title,artist,storage_url,cover_url")
       .eq("is_active", true).order("track_order", { ascending: true });
     if (error || !data) return [];
-    return (data as Array<{ id:string; title:string; artist:string; storage_url:string; cover_url:string|null }>)
-      .map((r) => ({ id:r.id, title:r.title, artist:r.artist, src:r.storage_url, cover:r.cover_url??undefined }));
+    return (data as Array<{ id: string; title: string; artist: string; storage_url: string; cover_url: string | null }>)
+      .map((r) => ({ id: r.id, title: r.title, artist: r.artist, src: r.storage_url, cover: r.cover_url ?? undefined }));
   } catch { return []; }
 }
 
@@ -48,23 +47,22 @@ export default async function HomePage() {
     getStudents(), getGalleryMedia(), getConfessions(), getSongs(),
   ]);
 
-  const sectionClass = "relative py-16 md:py-24";
-  const containerClass = "container mx-auto px-4 md:px-8";
-  const headerClass = "mb-10 md:mb-14 text-center";
-
   return (
     <main className="relative overflow-x-hidden">
       <NavBar />
       <HeroSection />
 
-      {/* Roster */}
-      <section id="roster" className={sectionClass} style={{ background:"var(--c-surface)" }}>
-        <div className="absolute inset-0 bg-grid-lines bg-grid opacity-100 pointer-events-none" />
-        <div className={`${containerClass} relative z-10`}>
-          <div className={headerClass}>
-            <p className="section-label mb-3">Angkatan 2026</p>
-            <h2 className="section-title">Warga <span style={{ color:"var(--c-gold)" }}>Kelas</span></h2>
-            <p className="mt-3 font-body text-sm max-w-sm mx-auto" style={{ color:"var(--c-muted)" }}>
+      {/* ── Roster ── */}
+      <section id="roster" className="relative py-16 md:py-24 grid-bg"
+        style={{ background: "var(--surface)" }}>
+        <div className="container mx-auto px-4 md:px-8 relative z-10">
+          <div className="mb-10 md:mb-14 text-center">
+            <p className="section-eyebrow mb-3">Angkatan 2026</p>
+            <h2 className="section-title">
+              Warga <em style={{ color: "var(--gold)" }}>Kelas</em>
+            </h2>
+            <p className="mt-3 font-body text-sm max-w-sm mx-auto"
+              style={{ color: "var(--muted)", lineHeight: 1.7 }}>
               Semua wajah yang pernah berjuang bareng—dari MTK sampai wisuda.
             </p>
           </div>
@@ -72,13 +70,17 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Gallery */}
-      <section id="gallery" className={sectionClass} style={{ background:"var(--c-bg)" }}>
-        <div className={containerClass}>
-          <div className={headerClass}>
-            <p className="section-label mb-3">Memories</p>
-            <h2 className="section-title">The <span style={{ color:"var(--c-gold)" }}>Archive</span></h2>
-            <p className="mt-3 font-body text-sm max-w-sm mx-auto" style={{ color:"var(--c-muted)" }}>
+      {/* ── Gallery ── */}
+      <section id="gallery" className="relative py-16 md:py-24"
+        style={{ background: "var(--void)" }}>
+        <div className="container mx-auto px-4 md:px-8">
+          <div className="mb-10 md:mb-14 text-center">
+            <p className="section-eyebrow mb-3">Memories</p>
+            <h2 className="section-title">
+              The <em style={{ color: "var(--gold)" }}>Archive</em>
+            </h2>
+            <p className="mt-3 font-body text-sm max-w-sm mx-auto"
+              style={{ color: "var(--muted)", lineHeight: 1.7 }}>
               Foto dan video dari semua momen—yang bikin ketawa, nangis, dan malu sekaligus.
             </p>
           </div>
@@ -86,14 +88,17 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Board */}
-      <section id="board" className={sectionClass} style={{ background:"var(--c-surface)" }}>
-        <div className="absolute inset-0 bg-grid-lines bg-grid opacity-100 pointer-events-none" />
-        <div className={`${containerClass} relative z-10`}>
-          <div className={headerClass}>
-            <p className="section-label mb-3">Anonymous</p>
-            <h2 className="section-title">Confession <span style={{ color:"var(--c-gold)" }}>Board</span></h2>
-            <p className="mt-3 font-body text-sm max-w-sm mx-auto" style={{ color:"var(--c-muted)" }}>
+      {/* ── Confession Board ── */}
+      <section id="board" className="relative py-16 md:py-24 grid-bg"
+        style={{ background: "var(--surface)" }}>
+        <div className="container mx-auto px-4 md:px-8 relative z-10">
+          <div className="mb-10 md:mb-14 text-center">
+            <p className="section-eyebrow mb-3">Anonymous</p>
+            <h2 className="section-title">
+              Confession <em style={{ color: "var(--gold)" }}>Board</em>
+            </h2>
+            <p className="mt-3 font-body text-sm max-w-sm mx-auto"
+              style={{ color: "var(--muted)", lineHeight: 1.7 }}>
               Curhat, roast, atau bilang sesuatu yang belum pernah lo bilang langsung.
             </p>
           </div>
