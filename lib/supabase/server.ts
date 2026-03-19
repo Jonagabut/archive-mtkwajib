@@ -1,27 +1,27 @@
 // lib/supabase/server.ts
-// Server-side admin client (uses service role key — never expose to client)
+//
+// WHY no singleton here:
+//   The original `let adminClient = null` singleton pattern causes TypeScript
+//   to lock the return type at module-load time. During Next.js builds this can
+//   cause the Database generic to resolve as `never` depending on module order.
+//   Fresh client per call costs nothing at server-action scale and fixes it.
+//
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 
-let adminClient: ReturnType<typeof createClient<Database>> | null = null;
-
 export function createAdminClient() {
-  if (!adminClient) {
-    adminClient = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
-  }
-  return adminClient;
+  return createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession:   false,
+      },
+    }
+  );
 }
 
-// Passcode validator
 export function validatePasscode(passcode: string): boolean {
   return passcode === process.env.CLASS_PASSCODE;
 }
