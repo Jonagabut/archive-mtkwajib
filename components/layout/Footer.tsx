@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 
+const NAV_LINKS = ["#roster", "#gallery", "#board"];
+
 export default function Footer() {
   const year = new Date().getFullYear();
 
@@ -23,7 +25,7 @@ export default function Footer() {
 
           {/* Nav links */}
           <nav className="flex flex-wrap items-center justify-center gap-4">
-            {["#roster", "#gallery", "#board", "#capsule"].map((href) => (
+            {NAV_LINKS.map((href) => (
               <a
                 key={href}
                 href={href}

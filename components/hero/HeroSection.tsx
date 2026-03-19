@@ -13,8 +13,7 @@ export default function HeroSection() {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref });
 
-  // Parallax transforms
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const bgY    = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
   const titleY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
@@ -24,12 +23,8 @@ export default function HeroSection() {
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 40 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
-    },
+    hidden:   { opacity: 0, y: 40 },
+    visible:  { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
   };
 
   return (
@@ -37,17 +32,14 @@ export default function HeroSection() {
       ref={ref}
       className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-void"
     >
-      {/* ── Parallax Background Orbs ── */}
-      <motion.div
-        style={{ y: bgY }}
-        className="absolute inset-0 pointer-events-none"
-      >
-        {/* Gold orb top-left */}
-        <div className="absolute top-[10%] left-[8%] w-[500px] h-[500px] rounded-full bg-gold/5 blur-[120px]" />
-        {/* Coral orb bottom-right */}
-        <div className="absolute bottom-[5%] right-[5%] w-[400px] h-[400px] rounded-full bg-coral/5 blur-[100px]" />
-        {/* Lavender center */}
-        <div className="absolute top-[40%] left-[40%] w-[300px] h-[300px] rounded-full bg-lavender/4 blur-[80px]" />
+      {/* ── Parallax background orbs ── */}
+      <motion.div style={{ y: bgY }} className="absolute inset-0 pointer-events-none">
+        {/* Using arbitrary opacity values [5%] instead of /4 or /3 —
+            Tailwind's standard scale only goes /5, /10, etc. so /4 and /3
+            produce no CSS and the blur effect silently disappears. */}
+        <div className="absolute top-[10%] left-[8%] w-[500px] h-[500px] rounded-full bg-gold/[5%] blur-[120px]" />
+        <div className="absolute bottom-[5%] right-[5%] w-[400px] h-[400px] rounded-full bg-coral/[5%] blur-[100px]" />
+        <div className="absolute top-[40%] left-[40%] w-[300px] h-[300px] rounded-full bg-lavender/[4%] blur-[80px]" />
       </motion.div>
 
       {/* ── Diagonal lines decoration ── */}
@@ -61,7 +53,7 @@ export default function HeroSection() {
         ))}
       </div>
 
-      {/* ── Main Content ── */}
+      {/* ── Main content ── */}
       <motion.div
         style={{ y: titleY, opacity }}
         className="relative z-10 flex flex-col items-center text-center px-4 max-w-5xl mx-auto"
@@ -91,7 +83,7 @@ export default function HeroSection() {
             Archive
           </motion.h1>
 
-          {/* Sub */}
+          {/* Subtitle */}
           <motion.p
             variants={itemVariants}
             className="font-body text-muted text-base md:text-lg max-w-lg"
@@ -99,43 +91,37 @@ export default function HeroSection() {
             Tiga tahun. Ribuan kenangan. Satu tempat yang bakal ada selamanya.
           </motion.p>
 
-          {/* CTA Buttons */}
+          {/* CTAs */}
           <motion.div
             variants={itemVariants}
             className="flex flex-wrap items-center gap-3 justify-center mt-2"
           >
-            <a href="#roster" className="btn-gold">
-              Lihat Warga Kelas
-            </a>
-            <a href="#gallery" className="btn-outline">
-              The Archive
-            </a>
+            <a href="#roster"  className="btn-gold">Lihat Warga Kelas</a>
+            <a href="#gallery" className="btn-outline">The Archive</a>
           </motion.div>
 
-          {/* Spotify Player */}
-          <motion.div
-            variants={itemVariants}
-            className="mt-6 w-full max-w-sm"
-          >
+          {/* Spotify embed
+              NOTE: frameBorder is a deprecated HTML attribute that triggers a React warning.
+              Use the style prop instead — identical visual result, zero warnings. */}
+          <motion.div variants={itemVariants} className="mt-6 w-full max-w-sm">
             <div className="card-glass p-3">
-              <p className="section-label text-[10px] mb-2 text-center">
-                🎵 Class Anthem
-              </p>
+              <p className="section-label text-[10px] mb-2 text-center">🎵 Class Anthem</p>
               <iframe
                 src={`https://open.spotify.com/embed/playlist/${SPOTIFY_PLAYLIST_ID}?utm_source=generator&theme=0`}
                 width="100%"
                 height="80"
-                frameBorder="0"
+                style={{ border: 0 }}
                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                 loading="lazy"
                 className="rounded-lg"
+                title="Class playlist"
               />
             </div>
           </motion.div>
         </motion.div>
       </motion.div>
 
-      {/* ── Scroll Indicator ── */}
+      {/* ── Scroll indicator ── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -151,7 +137,7 @@ export default function HeroSection() {
         </motion.div>
       </motion.div>
 
-      {/* ── Year stamp ── */}
+      {/* Year stamp */}
       <div className="absolute top-8 right-8 font-mono text-[10px] text-muted tracking-widest opacity-50 hidden md:block">
         CLASS OF {GRADUATION_YEAR}
       </div>

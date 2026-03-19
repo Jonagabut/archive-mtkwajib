@@ -5,15 +5,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
 const LINKS = [
-  { href: "#roster", label: "Warga Kelas" },
-  { href: "#gallery", label: "Archive" },
-  { href: "#board", label: "Board" },
-  { href: "#capsule", label: "Time Capsule" },
+  { href: "#roster",  label: "Warga Kelas" },
+  { href: "#gallery", label: "Archive"     },
+  { href: "#board",   label: "Board"       },
 ];
 
 export default function NavBar() {
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled,    setScrolled]    = useState(false);
+  const [mobileOpen,  setMobileOpen]  = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
