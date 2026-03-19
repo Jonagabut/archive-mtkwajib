@@ -26,7 +26,7 @@ export default function NavBar() {
       transition={{ delay: 0.4, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className="fixed top-0 inset-x-0 z-40 transition-all duration-500"
       style={scrolled ? {
-        background: "rgba(8,8,13,0.9)",
+        background: "rgba(3,8,15,0.92)",
         backdropFilter: "blur(20px)",
         borderBottom: "1px solid var(--border)",
       } : { background: "transparent" }}

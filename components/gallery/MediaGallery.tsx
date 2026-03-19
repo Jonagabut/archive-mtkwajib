@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import Masonry from "react-masonry-css";
 import {
   X, Download, Play, ZoomIn, ChevronLeft, ChevronRight,
@@ -86,7 +85,7 @@ function Lightbox({ media, all, onClose, onNavigate }: {
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       transition={{ duration: 0.16 }}
       className="lb-overlay fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5"
-      style={{ background: "rgba(8,8,13,0.96)" }}
+      style={{ background: "rgba(3,8,15,0.96)" }}
       onClick={onClose} onKeyDown={handleKeyDown} tabIndex={-1}>
       <motion.div
         initial={{ scale: 0.93, y: 12 }} animate={{ scale: 1, y: 0 }}
@@ -100,7 +99,7 @@ function Lightbox({ media, all, onClose, onNavigate }: {
         <div className="flex items-center justify-between gap-2 flex-shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-mono text-[9px] px-2 py-0.5 rounded"
-              style={{ background: "rgba(240,180,41,0.12)", color: "var(--gold)" }}>
+              style={{ background: "rgba(56,178,255,0.12)", color: "var(--gold)" }}>
               {media.category}
             </span>
             {media.uploaded_by && (
@@ -139,20 +138,20 @@ function Lightbox({ media, all, onClose, onNavigate }: {
           {idx > 0 && (
             <button onClick={(e) => { e.stopPropagation(); onNavigate("prev"); }}
               className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-              style={{ background: "rgba(8,8,13,0.7)", backdropFilter: "blur(6px)", color: "var(--ink)" }}>
+              style={{ background: "rgba(3,8,15,0.7)", backdropFilter: "blur(6px)", color: "var(--ink)" }}>
               <ChevronLeft size={18} />
             </button>
           )}
           {idx < all.length - 1 && (
             <button onClick={(e) => { e.stopPropagation(); onNavigate("next"); }}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-colors"
-              style={{ background: "rgba(8,8,13,0.7)", backdropFilter: "blur(6px)", color: "var(--ink)" }}>
+              style={{ background: "rgba(3,8,15,0.7)", backdropFilter: "blur(6px)", color: "var(--ink)" }}>
               <ChevronRight size={18} />
             </button>
           )}
 
           <span className="absolute bottom-2 right-2 font-mono text-[9px] rounded px-1.5 py-0.5"
-            style={{ background: "rgba(8,8,13,0.6)", color: "rgba(238,234,224,0.5)" }}>
+            style={{ background: "rgba(3,8,15,0.6)", color: "rgba(218,234,248,0.5)" }}>
             {idx + 1}/{all.length}
           </span>
         </div>
@@ -183,14 +182,14 @@ function MediaCard({ media, onOpen, index }: { media: GalleryMedia; onOpen: () =
           <video src={media.storage_url + "#t=1"} preload="metadata"
             className="w-full h-full object-cover" muted playsInline />
           <div className="absolute inset-0 flex items-center justify-center transition-colors"
-            style={{ background: "rgba(8,8,13,0.5)" }}>
+            style={{ background: "rgba(3,8,15,0.5)" }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-gold-glow"
               style={{ background: "var(--gold)" }}>
-              <Play size={14} fill="currentColor" style={{ color: "#08080d", marginLeft: 2 }} />
+              <Play size={14} fill="currentColor" style={{ color: "#03080f", marginLeft: 2 }} />
             </div>
           </div>
           <span className="absolute top-2 left-2 font-mono text-[8px] rounded px-1.5 py-0.5"
-            style={{ background: "var(--gold)", color: "#08080d" }}>VID</span>
+            style={{ background: "var(--gold)", color: "#03080f" }}>VID</span>
         </div>
       ) : (
         <div className="relative overflow-hidden">
@@ -198,7 +197,7 @@ function MediaCard({ media, onOpen, index }: { media: GalleryMedia; onOpen: () =
             width={media.width ?? 600} height={media.height ?? 400}
             className="w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ background: "rgba(8,8,13,0.3)" }}>
+            style={{ background: "rgba(3,8,15,0.3)" }}>
             <ZoomIn size={20} style={{ color: "white" }} className="drop-shadow-lg" />
           </div>
         </div>
@@ -206,7 +205,7 @@ function MediaCard({ media, onOpen, index }: { media: GalleryMedia; onOpen: () =
       <div className="p-2.5">
         <div className="flex items-center justify-between gap-1">
           <span className="font-mono text-[9px] rounded px-1.5 py-0.5 truncate"
-            style={{ background: "rgba(240,180,41,0.1)", color: "var(--gold)" }}>
+            style={{ background: "rgba(56,178,255,0.1)", color: "var(--gold)" }}>
             {media.category}
           </span>
           {media.uploaded_by && (
@@ -265,7 +264,7 @@ function UploadModal({ onClose }: { onClose: () => void }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-      style={{ background: "rgba(8,8,13,0.88)", backdropFilter: "blur(10px)" }}
+      style={{ background: "rgba(3,8,15,0.88)", backdropFilter: "blur(10px)" }}
       onClick={onClose}>
       <motion.div
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
@@ -320,7 +319,7 @@ function UploadModal({ onClose }: { onClose: () => void }) {
                   className="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gold file:text-void hover:file:bg-gold-dim cursor-pointer"
                   style={{ color: "var(--muted)" }} />
                 {fileInfo && (
-                  <p className="mt-1 font-mono text-[9px]" style={{ color: "rgba(94,92,120,0.7)" }}>
+                  <p className="mt-1 font-mono text-[9px]" style={{ color: "rgba(74,106,144,0.7)" }}>
                     {fileInfo}
                   </p>
                 )}
@@ -349,7 +348,7 @@ function UploadModal({ onClose }: { onClose: () => void }) {
               </div>
               {errorMsg && (
                 <p className="text-sm rounded-xl px-3 py-2"
-                  style={{ color: "var(--coral)", background: "rgba(224,106,85,0.1)" }}>
+                  style={{ color: "var(--coral)", background: "rgba(255,95,126,0.1)" }}>
                   {errorMsg}
                 </p>
               )}
@@ -373,7 +372,7 @@ function UploadModal({ onClose }: { onClose: () => void }) {
 function LiveDot({ on }: { on: boolean }) {
   return (
     <div className="flex items-center gap-1.5 font-mono text-[10px]"
-      style={{ color: on ? "var(--muted)" : "rgba(94,92,120,0.4)" }}>
+      style={{ color: on ? "var(--muted)" : "rgba(74,106,144,0.4)" }}>
       {on && <span className="w-1.5 h-1.5 rounded-full animate-pulse"
         style={{ background: "var(--sage)" }} />}
       <span>{on ? "live" : "–"}</span>
@@ -425,7 +424,7 @@ export default function MediaGallery({ initialMedia }: { initialMedia: GalleryMe
               onClick={() => { setActiveCategory(cat); setLightboxId(null); }}
               className="px-3 py-1.5 rounded-lg font-mono text-[10px] tracking-wide border transition-all duration-200"
               style={activeCategory === cat
-                ? { background: "var(--gold)", color: "#08080d", borderColor: "var(--gold)" }
+                ? { background: "var(--gold)", color: "#03080f", borderColor: "var(--gold)" }
                 : { background: "var(--faint)", color: "var(--muted)", borderColor: "var(--border)" }
               }>
               {cat}
@@ -447,7 +446,7 @@ export default function MediaGallery({ initialMedia }: { initialMedia: GalleryMe
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center py-20 gap-4 text-center">
-          <ImageIcon size={36} style={{ color: "rgba(94,92,120,0.3)" }} />
+          <ImageIcon size={36} style={{ color: "rgba(74,106,144,0.3)" }} />
           <p className="font-display text-xl" style={{ color: "var(--muted)", fontStyle: "italic" }}>
             Kosong di sini.
           </p>

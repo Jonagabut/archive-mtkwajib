@@ -33,21 +33,21 @@ export default function HeroSection() {
           position: "absolute", top: "6%", left: "4%",
           width: "clamp(240px,40vw,520px)", height: "clamp(240px,40vw,520px)",
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(240,180,41,0.07) 0%, transparent 68%)",
+          background: "radial-gradient(circle, rgba(56,178,255,0.08) 0%, transparent 68%)",
           filter: "blur(60px)",
         }} />
         <div style={{
           position: "absolute", bottom: "8%", right: "4%",
           width: "clamp(200px,32vw,400px)", height: "clamp(200px,32vw,400px)",
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(109,184,145,0.055) 0%, transparent 68%)",
+          background: "radial-gradient(circle, rgba(77,207,176,0.06) 0%, transparent 68%)",
           filter: "blur(55px)",
         }} />
         <div style={{
           position: "absolute", top: "42%", left: "42%",
           width: "clamp(160px,22vw,300px)", height: "clamp(160px,22vw,300px)",
           borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(224,106,85,0.04) 0%, transparent 68%)",
+          background: "radial-gradient(circle, rgba(29,143,214,0.05) 0%, transparent 68%)",
           filter: "blur(45px)",
         }} />
       </motion.div>
@@ -73,9 +73,9 @@ export default function HeroSection() {
 
           {/* Eyebrow */}
           <motion.div variants={item} className="flex items-center gap-3">
-            <span style={{ width: 32, height: 1, background: "rgba(240,180,41,0.5)" }} />
+            <span style={{ width: 32, height: 1, background: "rgba(56,178,255,0.5)" }} />
             <span className="section-eyebrow">Kelas XII — {YEAR}</span>
-            <span style={{ width: 32, height: 1, background: "rgba(240,180,41,0.5)" }} />
+            <span style={{ width: 32, height: 1, background: "rgba(56,178,255,0.5)" }} />
           </motion.div>
 
           {/* Main title */}
@@ -96,7 +96,7 @@ export default function HeroSection() {
           <motion.p variants={item}
             className="font-body max-w-xs sm:max-w-md"
             style={{ color: "var(--muted)", fontSize: "clamp(0.875rem, 2vw, 1.05rem)", lineHeight: 1.7 }}>
-            Tiga tahun. Ribuan kenangan. Satu tempat yang bakal ada selamanya.
+            Tiga tahun, enam orang, satu circle. Semua tersimpan di sini.
           </motion.p>
 
           {/* CTAs */}

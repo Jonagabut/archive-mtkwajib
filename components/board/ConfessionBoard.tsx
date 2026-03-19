@@ -11,9 +11,9 @@ import type { Confession, NoteColor } from "@/lib/supabase/database.types";
 
 // Color palette for the cards
 const ACCENTS: Record<NoteColor, { border: string; dot: string; label: string }> = {
-  yellow:   { border: "rgba(240,180,41,0.5)",  dot: "#f0b429", label: "Kuning"   },
-  pink:     { border: "rgba(224,106,85,0.5)",  dot: "#e06a55", label: "Coral"    },
-  lavender: { border: "rgba(155,143,212,0.5)", dot: "#9b8fd4", label: "Lavender" },
+  yellow:   { border: "rgba(56,178,255,0.5)",  dot: "#38b2ff", label: "Biru"     },
+  pink:     { border: "rgba(255,95,126,0.5)",  dot: "#ff5f7e", label: "Pink"     },
+  lavender: { border: "rgba(77,207,176,0.5)",  dot: "#4dcfb0", label: "Tosca"    },
 };
 
 const COLOR_OPTS: NoteColor[] = ["yellow", "pink", "lavender"];
@@ -103,7 +103,7 @@ function PostModal({ onClose, onPosted }: {
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-      style={{ background: "rgba(8,8,13,0.88)", backdropFilter: "blur(10px)" }}
+      style={{ background: "rgba(3,8,15,0.88)", backdropFilter: "blur(10px)" }}
       onClick={onClose}>
       <motion.div
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
@@ -176,7 +176,7 @@ function PostModal({ onClose, onPosted }: {
 
               {errMsg && (
                 <p className="text-sm rounded-xl px-3 py-2"
-                  style={{ color: "var(--coral)", background: "rgba(224,106,85,0.1)" }}>
+                  style={{ color: "var(--coral)", background: "rgba(255,95,126,0.1)" }}>
                   {errMsg}
                 </p>
               )}
@@ -201,7 +201,7 @@ function PostModal({ onClose, onPosted }: {
 function LiveDot({ on }: { on: boolean }) {
   return (
     <div className="flex items-center gap-1.5 font-mono text-[10px]"
-      style={{ color: on ? "var(--muted)" : "rgba(94,92,120,0.4)" }}>
+      style={{ color: on ? "var(--muted)" : "rgba(74,106,144,0.4)" }}>
       {on && <span className="w-1.5 h-1.5 rounded-full animate-pulse"
         style={{ background: "var(--sage)" }} />}
       <span>{on ? "live" : "–"}</span>
@@ -250,7 +250,7 @@ export default function ConfessionBoard({ initialConfessions }: { initialConfess
       {/* Scrollable grid */}
       {notes.length === 0 ? (
         <div className="flex flex-col items-center py-20 gap-4 text-center">
-          <MessageSquare size={36} style={{ color: "rgba(94,92,120,0.3)" }} />
+          <MessageSquare size={36} style={{ color: "rgba(74,106,144,0.3)" }} />
           <p className="font-display text-xl" style={{ color: "var(--muted)", fontStyle: "italic" }}>
             Board masih kosong.
           </p>

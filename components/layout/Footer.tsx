@@ -7,7 +7,7 @@ export default function Footer() {
     <footer className="relative overflow-hidden py-12"
       style={{ background: "var(--void)", borderTop: "1px solid var(--border)" }}>
       <div className="absolute top-0 inset-x-0 h-px"
-        style={{ background: "linear-gradient(to right, transparent, rgba(240,180,41,0.35), transparent)" }} />
+        style={{ background: "linear-gradient(to right, transparent, rgba(56,178,255,0.3), transparent)" }} />
 
       <div className="container mx-auto px-4 md:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -43,11 +43,11 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2"
-          style={{ borderTop: "1px solid rgba(34,32,58,0.6)" }}>
-          <p className="font-mono text-[9px]" style={{ color: "rgba(94,92,120,0.5)" }}>
+          style={{ borderTop: "1px solid rgba(22,45,78,0.6)" }}>
+          <p className="font-mono text-[9px]" style={{ color: "rgba(74,106,144,0.5)" }}>
             © {year} MTK Wajib Archive. All memories reserved.
           </p>
-          <p className="font-mono text-[9px]" style={{ color: "rgba(94,92,120,0.4)" }}>
+          <p className="font-mono text-[9px]" style={{ color: "rgba(74,106,144,0.4)" }}>
             Next.js · Supabase · Framer Motion
           </p>
         </div>

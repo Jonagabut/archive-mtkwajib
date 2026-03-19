@@ -63,7 +63,7 @@ export default async function HomePage() {
             </h2>
             <p className="mt-3 font-body text-sm max-w-sm mx-auto"
               style={{ color: "var(--muted)", lineHeight: 1.7 }}>
-              Semua wajah yang pernah berjuang bareng—dari MTK sampai wisuda.
+              Enam orang, satu circle. Dari pusing bareng di kelas sampe salaman di hari-H.
             </p>
           </div>
           <StudentRoster students={students} />

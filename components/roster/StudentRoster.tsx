@@ -6,14 +6,14 @@ import { MapPin, Quote, X } from "lucide-react";
 import type { Student } from "@/lib/supabase/database.types";
 
 const PH_CLASS = "https://images.unsplash.com/photo-1529111290557-82f6d5c6cf85?w=400&q=80";
-const PH_GRAD  = "https://images.unsplash.com/photo-1546961342-ea5f62d5a23b?w=400&q=80";
+const PH_GRAD  = "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&q=80";
 
 // Mobile bottom sheet
 function DetailSheet({ student, onClose }: { student: Student; onClose: () => void }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-end justify-center"
-      style={{ background: "rgba(8,8,13,0.88)", backdropFilter: "blur(10px)" }}
+      style={{ background: "rgba(3,8,15,0.88)", backdropFilter: "blur(10px)" }}
       onClick={onClose}>
       <motion.div
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
@@ -31,7 +31,7 @@ function DetailSheet({ student, onClose }: { student: Student; onClose: () => vo
             style={{ background: "linear-gradient(to top, var(--card), transparent)" }} />
           <button onClick={onClose}
             className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: "rgba(8,8,13,0.6)", color: "var(--muted)" }}>
+            style={{ background: "rgba(3,8,15,0.6)", color: "var(--muted)" }}>
             <X size={14} />
           </button>
         </div>
@@ -82,7 +82,7 @@ function StudentCard({ student, index }: { student: Student; index: number }) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-40px" }}
         transition={{ duration: 0.55, delay: (index % 8) * 0.055, ease: [0.22, 1, 0.36, 1] }}
-        className="flip-card md:h-[360px] cursor-pointer"
+        className="flip-card h-[280px] md:h-[360px] cursor-pointer"
         onClick={handleTap}>
         <div className={`flip-card-inner ${flipped ? "flipped" : ""}`}>
 
@@ -98,16 +98,16 @@ function StudentCard({ student, index }: { student: Student; index: number }) {
                 style={{ background: "linear-gradient(to top, var(--card) 0%, transparent 55%)" }} />
               {student.class_number && (
                 <div className="absolute top-2 left-2 font-mono text-[9px] rounded px-1.5 py-0.5"
-                  style={{ background: "var(--gold)", color: "#08080d" }}>
+                  style={{ background: "var(--gold)", color: "#03080f" }}>
                   #{student.class_number.toString().padStart(2, "0")}
                 </div>
               )}
               <div className="hidden md:block absolute top-2 right-2 font-mono text-[9px] rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ background: "rgba(8,8,13,0.7)", color: "var(--muted)" }}>
+                style={{ background: "rgba(3,8,15,0.7)", color: "var(--muted)" }}>
                 flip →
               </div>
               <div className="md:hidden absolute top-2 right-2 font-mono text-[9px] rounded px-1.5 py-0.5"
-                style={{ background: "rgba(8,8,13,0.7)", color: "var(--muted)" }}>
+                style={{ background: "rgba(3,8,15,0.7)", color: "var(--muted)" }}>
                 tap
               </div>
             </div>
@@ -125,14 +125,14 @@ function StudentCard({ student, index }: { student: Student; index: number }) {
 
           {/* Back */}
           <div className="flip-card-back rounded-xl overflow-hidden"
-            style={{ border: "1px solid rgba(240,180,41,0.2)", background: "var(--card)" }}>
+            style={{ border: "1px solid rgba(56,178,255,0.2)", background: "var(--card)" }}>
             <div className="relative w-full h-[165px] overflow-hidden"
               style={{ background: "var(--faint)" }}>
               <Image src={student.photo_grad_url || PH_GRAD}
                 alt={`${student.name} wisuda`} fill
                 sizes="25vw" className="object-cover object-top" />
               <div className="absolute inset-0"
-                style={{ background: "linear-gradient(to top, var(--card), rgba(21,20,32,0.3) 55%, transparent)" }} />
+                style={{ background: "linear-gradient(to top, var(--card), rgba(11,22,40,0.3) 55%, transparent)" }} />
             </div>
             <div className="p-3 flex flex-col gap-2">
               <div>
@@ -187,7 +187,7 @@ export default function StudentRoster({ students }: { students: Student[] }) {
   );
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto">
       {sorted.map((s, i) => <StudentCard key={s.id} student={s} index={i} />)}
     </div>
   );

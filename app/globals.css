@@ -5,18 +5,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
-  --void:    #08080d;
-  --surface: #0e0d14;
-  --card:    #151420;
-  --border:  #22203a;
-  --faint:   #1c1b2c;
-  --ink:     #eeeae0;
-  --muted:   #5e5c78;
-  --soft:    #9896b0;
-  --gold:    #f0b429;
-  --gold-d:  #c4901e;
-  --coral:   #e06a55;
-  --sage:    #6db891;
+  --void:    #03080f;
+  --surface: #070e1c;
+  --card:    #0b1628;
+  --border:  #162d4e;
+  --faint:   #0e1e30;
+  --ink:     #daeaf8;
+  --muted:   #4a6a90;
+  --soft:    #7298c0;
+  --gold:    #38b2ff;
+  --gold-d:  #1d8fd6;
+  --coral:   #ff5f7e;
+  --sage:    #4dcfb0;
 
   scrollbar-width: thin;
   scrollbar-color: var(--gold) var(--surface);
@@ -26,7 +26,7 @@
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
 
-::selection { background: rgba(240,180,41,0.22); color: var(--gold); }
+::selection { background: rgba(56,178,255,0.22); color: var(--gold); }
 
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
@@ -66,7 +66,7 @@
   }
 
   .card-glass {
-    background: rgba(21,20,32,0.85);
+    background: rgba(11,22,40,0.85);
     backdrop-filter: blur(18px);
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -76,7 +76,7 @@
   .btn-gold {
     display: inline-flex; align-items: center; gap: 7px;
     padding: 10px 22px;
-    background: var(--gold); color: #08080d;
+    background: var(--gold); color: #03080f;
     font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
     letter-spacing: 0.01em; border-radius: 10px; border: none; cursor: pointer;
     transition: background 0.18s, transform 0.1s;
@@ -104,7 +104,7 @@
     outline: none; transition: border-color 0.18s, box-shadow 0.18s;
   }
   .input-void::placeholder { color: var(--muted); }
-  .input-void:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(240,180,41,0.12); }
+  .input-void:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(56,178,255,0.12); }
 
   /* Masonry */
   .masonry-grid   { display: flex; margin-left: -12px; }
@@ -132,7 +132,7 @@
 
 /* Hero */
 .hero-glow {
-  text-shadow: 0 0 80px rgba(240,180,41,0.2), 0 2px 20px rgba(0,0,0,0.8);
+  text-shadow: 0 0 80px rgba(56,178,255,0.18), 0 2px 20px rgba(0,0,0,0.85);
 }
 
 /* Lightbox */
@@ -141,8 +141,8 @@
 /* Grid bg */
 .grid-bg {
   background-image:
-    linear-gradient(rgba(240,180,41,0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(240,180,41,0.035) 1px, transparent 1px);
+    linear-gradient(rgba(56,178,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56,178,255,0.03) 1px, transparent 1px);
   background-size: 52px 52px;
 }
 
