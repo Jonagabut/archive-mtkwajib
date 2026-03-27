@@ -1,5 +1,6 @@
 "use client";
 // components/gallery/MediaGallery.tsx
+// UPDATED: swipe gesture support in lightbox (mobile)
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -47,14 +48,51 @@ async function compressImage(file: File): Promise<File> {
   });
 }
 
+// ── Swipe hint (shown for 3s on first open, mobile only) ──────────
+function SwipeHint() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 6 }}
+      transition={{ duration: 0.4 }}
+      className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full pointer-events-none sm:hidden"
+      style={{ background: "rgba(3,8,15,0.72)", backdropFilter: "blur(8px)", border: "1px solid var(--border)" }}
+    >
+      <motion.span
+        animate={{ x: [-3, 0, -3] }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+        className="font-mono" style={{ color: "var(--soft)", fontSize: 11 }}>‹</motion.span>
+      <span className="font-mono text-[9px] tracking-widest" style={{ color: "var(--muted)" }}>SWIPE</span>
+      <motion.span
+        animate={{ x: [3, 0, 3] }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+        className="font-mono" style={{ color: "var(--soft)", fontSize: 11 }}>›</motion.span>
+    </motion.div>
+  );
+}
+
 // ── Lightbox ──────────────────────────────────────────────────────
 function Lightbox({ media, all, onClose, onNavigate }: {
   media: GalleryMedia; all: GalleryMedia[];
   onClose: () => void; onNavigate: (d: "prev" | "next") => void;
 }) {
-  const [downloading, setDownloading] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const idx = all.findIndex((m) => m.id === media.id);
+  const [downloading, setDownloading]   = useState(false);
+  const [swipeX, setSwipeX]             = useState(0);
+  const [isSwiping, setIsSwiping]       = useState(false);
+  const [showHint, setShowHint]         = useState(true);
+  const overlayRef                      = useRef<HTMLDivElement>(null);
+  const touchStartX                     = useRef<number | null>(null);
+  const touchStartY                     = useRef<number | null>(null);
+  const isHorizSwipe                    = useRef(false);
+  const idx                             = all.findIndex((m) => m.id === media.id);
+  const SWIPE_THRESHOLD                 = 55;
+
+  // Auto-hide hint after 3 seconds
+  useEffect(() => {
+    const t = setTimeout(() => setShowHint(false), 3000);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => { overlayRef.current?.focus(); }, []);
 
@@ -63,6 +101,53 @@ function Lightbox({ media, all, onClose, onNavigate }: {
     if (e.key === "ArrowLeft")  onNavigate("prev");
     if (e.key === "ArrowRight") onNavigate("next");
   }, [onClose, onNavigate]);
+
+  // ── Touch handlers ────────────────────────────────────────────
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current   = e.touches[0].clientX;
+    touchStartY.current   = e.touches[0].clientY;
+    isHorizSwipe.current  = false;
+    setSwipeX(0);
+    setIsSwiping(false);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+
+    // Lock swipe direction on first meaningful movement
+    if (!isHorizSwipe.current && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      isHorizSwipe.current = Math.abs(dx) > Math.abs(dy);
+    }
+
+    if (isHorizSwipe.current) {
+      e.stopPropagation();
+      setIsSwiping(true);
+      setSwipeX(dx);
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || !isHorizSwipe.current) {
+      setSwipeX(0); setIsSwiping(false);
+      touchStartX.current = null; touchStartY.current = null;
+      return;
+    }
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+
+    if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+      setShowHint(false); // hide hint once user swipes
+      if (dx < 0 && idx < all.length - 1) onNavigate("next");
+      else if (dx > 0 && idx > 0)         onNavigate("prev");
+    }
+
+    setSwipeX(0);
+    setIsSwiping(false);
+    touchStartX.current = null;
+    touchStartY.current = null;
+    isHorizSwipe.current = false;
+  }, [idx, all.length, onNavigate]);
 
   const handleDownload = useCallback(async () => {
     if (downloading) return;
@@ -80,6 +165,15 @@ function Lightbox({ media, all, onClose, onNavigate }: {
     finally { setDownloading(false); }
   }, [media, downloading]);
 
+  // Rubber-band at edges, light drag follow in middle
+  const visualSwipeX = (() => {
+    const atStart = idx === 0          && swipeX > 0;
+    const atEnd   = idx === all.length - 1 && swipeX < 0;
+    return (atStart || atEnd) ? swipeX * 0.18 : swipeX * 0.42;
+  })();
+
+  const swipeProgress = Math.min(1, Math.abs(swipeX) / (SWIPE_THRESHOLD * 2.5));
+
   return (
     <motion.div
       ref={overlayRef}
@@ -88,6 +182,7 @@ function Lightbox({ media, all, onClose, onNavigate }: {
       className="lb-overlay fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5"
       style={{ background: "rgba(3,8,15,0.96)" }}
       onClick={onClose} onKeyDown={handleKeyDown} tabIndex={-1}>
+
       <motion.div
         initial={{ scale: 0.93, y: 12 }} animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.93, y: 12 }}
@@ -122,39 +217,102 @@ function Lightbox({ media, all, onClose, onNavigate }: {
           </div>
         </div>
 
-        {/* Media — arrows inside frame, safe on Android */}
-        <div className="relative rounded-2xl overflow-hidden flex items-center justify-center"
-          style={{ background: "var(--faint)", maxHeight: "calc(92dvh - 90px)" }}>
-          {media.media_type === "video" ? (
-            <video src={media.storage_url} controls autoPlay playsInline preload="metadata"
-              className="w-full object-contain rounded-2xl"
-              style={{ maxHeight: "calc(92dvh - 90px)", background: "#05050a" }} />
-          ) : (
-            <Image src={media.storage_url} alt={media.caption ?? "Archive photo"}
-              width={media.width ?? 1200} height={media.height ?? 800}
-              className="object-contain w-full rounded-2xl"
-              style={{ maxHeight: "calc(92dvh - 90px)" }} priority />
-          )}
+        {/* ── Media — swipeable area ── */}
+        <div
+          className="relative rounded-2xl overflow-hidden flex items-center justify-center select-none"
+          style={{ background: "var(--faint)", maxHeight: "calc(92dvh - 90px)", touchAction: "pan-y" }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Media with swipe drag transform */}
+          <motion.div
+            className="w-full flex items-center justify-center"
+            animate={{
+              x: visualSwipeX,
+              opacity: isSwiping ? Math.max(0.55, 1 - swipeProgress * 0.5) : 1,
+              scale: isSwiping ? Math.max(0.95, 1 - swipeProgress * 0.04) : 1,
+            }}
+            transition={isSwiping
+              ? { duration: 0, ease: "linear" }
+              : { type: "spring", stiffness: 380, damping: 36 }
+            }
+          >
+            {media.media_type === "video" ? (
+              <video src={media.storage_url} controls autoPlay playsInline preload="metadata"
+                className="w-full object-contain rounded-2xl"
+                style={{ maxHeight: "calc(92dvh - 90px)", background: "#05050a" }} />
+            ) : (
+              <Image src={media.storage_url} alt={media.caption ?? "Archive photo"}
+                width={media.width ?? 1200} height={media.height ?? 800}
+                className="object-contain w-full rounded-2xl"
+                style={{ maxHeight: "calc(92dvh - 90px)" }} priority />
+            )}
+          </motion.div>
 
+          {/* ── Edge glow feedback ── */}
+          <AnimatePresence>
+            {isSwiping && swipeX < -20 && idx < all.length - 1 && (
+              <motion.div key="glow-right"
+                initial={{ opacity: 0 }} animate={{ opacity: swipeProgress * 0.5 }} exit={{ opacity: 0 }}
+                className="absolute inset-y-0 right-0 w-20 rounded-r-2xl pointer-events-none"
+                style={{ background: "linear-gradient(to left, rgba(56,178,255,0.3), transparent)" }}
+              />
+            )}
+            {isSwiping && swipeX > 20 && idx > 0 && (
+              <motion.div key="glow-left"
+                initial={{ opacity: 0 }} animate={{ opacity: swipeProgress * 0.5 }} exit={{ opacity: 0 }}
+                className="absolute inset-y-0 left-0 w-20 rounded-l-2xl pointer-events-none"
+                style={{ background: "linear-gradient(to right, rgba(56,178,255,0.3), transparent)" }}
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Desktop arrow buttons */}
           {idx > 0 && (
             <button onClick={(e) => { e.stopPropagation(); onNavigate("prev"); }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+              className="hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full items-center justify-center transition-colors hover:bg-opacity-90"
               style={{ background: "rgba(3,8,15,0.7)", backdropFilter: "blur(6px)", color: "var(--ink)" }}>
               <ChevronLeft size={18} />
             </button>
           )}
           {idx < all.length - 1 && (
             <button onClick={(e) => { e.stopPropagation(); onNavigate("next"); }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+              className="hidden sm:flex absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full items-center justify-center transition-colors hover:bg-opacity-90"
               style={{ background: "rgba(3,8,15,0.7)", backdropFilter: "blur(6px)", color: "var(--ink)" }}>
               <ChevronRight size={18} />
             </button>
           )}
 
-          <span className="absolute bottom-2 right-2 font-mono text-[9px] rounded px-1.5 py-0.5"
+          {/* Counter pill */}
+          <span className="absolute top-2 right-2 font-mono text-[9px] rounded px-1.5 py-0.5"
             style={{ background: "rgba(3,8,15,0.6)", color: "rgba(218,234,248,0.5)" }}>
             {idx + 1}/{all.length}
           </span>
+
+          {/* Mobile dot navigation */}
+          {all.length > 1 && (
+            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 sm:hidden">
+              {all.slice(Math.max(0, idx - 2), Math.min(all.length, idx + 3)).map((m, dotI) => {
+                const realIdx = Math.max(0, idx - 2) + dotI;
+                return (
+                  <motion.div key={m.id}
+                    animate={{
+                      width: realIdx === idx ? 18 : 5,
+                      background: realIdx === idx ? "var(--gold)" : "rgba(74,106,144,0.38)",
+                    }}
+                    transition={{ duration: 0.22 }}
+                    style={{ height: 5, borderRadius: 3 }}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Swipe hint */}
+          <AnimatePresence>
+            {showHint && all.length > 1 && <SwipeHint />}
+          </AnimatePresence>
         </div>
 
         {media.caption && (

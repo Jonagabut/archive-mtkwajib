@@ -1,24 +1,46 @@
 "use client";
 // components/board/ConfessionBoard.tsx
-// VOID design: scrollable grid, 3 cols desktop / 2 cols tablet / 1 col mobile
-// No password, no dragging — just post and scroll.
+// UPDATED: waktu post + sort toggle (newest/oldest)
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Loader2, MessageSquare } from "lucide-react";
+import { Plus, X, Loader2, MessageSquare, ArrowUpDown, Clock } from "lucide-react";
 import { createClient as createBrowserClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Confession, NoteColor } from "@/lib/supabase/database.types";
 
-// Color palette for the cards
 const ACCENTS: Record<NoteColor, { border: string; dot: string; label: string }> = {
-  yellow:   { border: "rgba(56,178,255,0.5)",  dot: "#38b2ff", label: "Biru"     },
-  pink:     { border: "rgba(255,95,126,0.5)",  dot: "#ff5f7e", label: "Pink"     },
-  lavender: { border: "rgba(77,207,176,0.5)",  dot: "#4dcfb0", label: "Tosca"    },
+  yellow:   { border: "rgba(56,178,255,0.5)",  dot: "#38b2ff", label: "Biru"  },
+  pink:     { border: "rgba(255,95,126,0.5)",  dot: "#ff5f7e", label: "Pink"  },
+  lavender: { border: "rgba(77,207,176,0.5)",  dot: "#4dcfb0", label: "Tosca" },
 };
 
 const COLOR_OPTS: NoteColor[] = ["yellow", "pink", "lavender"];
 
-// Post directly via anon Supabase client (no server action, no passcode)
+// ── Time helpers ──────────────────────────────────────────────────
+function formatRelativeTime(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const secs  = Math.floor(diff / 1000);
+  const mins  = Math.floor(secs / 60);
+  const hours = Math.floor(mins / 60);
+  const days  = Math.floor(hours / 24);
+
+  if (secs  <  60) return "baru saja";
+  if (mins  <  60) return `${mins}m lalu`;
+  if (hours <  24) return `${hours}j lalu`;
+  if (days  <   7) return `${days}h lalu`;
+  return new Date(isoString).toLocaleDateString("id-ID", {
+    day: "numeric", month: "short",
+  });
+}
+
+function formatAbsoluteTime(isoString: string): string {
+  return new Date(isoString).toLocaleString("id-ID", {
+    day: "numeric", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+// Post via anon Supabase client
 function usePostNote() {
   const post = async (content: string, color: NoteColor) => {
     const sb = createBrowserClient(
@@ -39,9 +61,10 @@ function usePostNote() {
   return { post };
 }
 
-// Individual note card
+// ── Individual note card ──────────────────────────────────────────
 function NoteCard({ note, index }: { note: Confession; index: number }) {
-  const color = (note.color as NoteColor) || "yellow";
+  const [showAbsTime, setShowAbsTime] = useState(false);
+  const color  = (note.color as NoteColor) || "yellow";
   const accent = ACCENTS[color];
 
   return (
@@ -52,11 +75,11 @@ function NoteCard({ note, index }: { note: Confession; index: number }) {
       className="flex flex-col gap-2.5 rounded-xl p-3.5"
       style={{
         background: "var(--card)",
-        border: `1px solid var(--border)`,
+        border: "1px solid var(--border)",
         borderLeft: `3px solid ${accent.border}`,
         minHeight: 88,
       }}>
-      {/* dot accent top right */}
+      {/* Content + dot */}
       <div className="flex items-start justify-between gap-2">
         <p className="font-body text-sm leading-relaxed flex-1"
           style={{ color: "var(--ink)", fontSize: 13, lineHeight: 1.55 }}>
@@ -65,23 +88,40 @@ function NoteCard({ note, index }: { note: Confession; index: number }) {
         <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1"
           style={{ background: accent.dot, opacity: 0.7 }} />
       </div>
-      <span className="font-mono text-[9px]" style={{ color: "var(--muted)" }}>
-        anonim
-      </span>
+
+      {/* Footer: "anonim" + timestamp */}
+      <div className="flex items-center justify-between gap-2 mt-auto">
+        <span className="font-mono text-[9px]" style={{ color: "var(--muted)" }}>
+          anonim
+        </span>
+        <button
+          onClick={() => setShowAbsTime((v) => !v)}
+          title={showAbsTime ? formatRelativeTime(note.created_at) : formatAbsoluteTime(note.created_at)}
+          className="flex items-center gap-1 group transition-opacity"
+          style={{ opacity: 0.65 }}>
+          <Clock size={8} style={{ color: "var(--muted)", flexShrink: 0 }} />
+          <span className="font-mono text-[9px] transition-colors"
+            style={{ color: "var(--muted)" }}>
+            {showAbsTime
+              ? formatAbsoluteTime(note.created_at)
+              : formatRelativeTime(note.created_at)}
+          </span>
+        </button>
+      </div>
     </motion.div>
   );
 }
 
-// Post modal
+// ── Post modal ────────────────────────────────────────────────────
 function PostModal({ onClose, onPosted }: {
   onClose: () => void;
   onPosted: (note: Confession) => void;
 }) {
-  const { post }                    = usePostNote();
-  const [color, setColor]           = useState<NoteColor>("yellow");
-  const [content, setContent]       = useState("");
-  const [status, setStatus]         = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errMsg, setErrMsg]         = useState("");
+  const { post }              = usePostNote();
+  const [color, setColor]     = useState<NoteColor>("yellow");
+  const [content, setContent] = useState("");
+  const [status, setStatus]   = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errMsg, setErrMsg]   = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -111,7 +151,6 @@ function PostModal({ onClose, onPosted }: {
         className="card-glass w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl pb-safe"
         onClick={(e) => e.stopPropagation()}>
 
-        {/* Handle (mobile) */}
         <div className="flex justify-center pt-3 sm:hidden">
           <div className="w-10 h-1 rounded-full" style={{ background: "var(--border)" }} />
         </div>
@@ -141,7 +180,6 @@ function PostModal({ onClose, onPosted }: {
             </motion.div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              {/* Color picker */}
               <div className="flex items-center gap-3">
                 {COLOR_OPTS.map((c) => (
                   <button key={c} type="button" onClick={() => setColor(c)}
@@ -197,7 +235,7 @@ function PostModal({ onClose, onPosted }: {
   );
 }
 
-// Live indicator
+// ── Live indicator ────────────────────────────────────────────────
 function LiveDot({ on }: { on: boolean }) {
   return (
     <div className="flex items-center gap-1.5 font-mono text-[10px]"
@@ -209,11 +247,34 @@ function LiveDot({ on }: { on: boolean }) {
   );
 }
 
-// Main
+// ── Sort toggle button ────────────────────────────────────────────
+type SortOrder = "newest" | "oldest";
+
+function SortToggle({ order, onChange }: { order: SortOrder; onChange: (o: SortOrder) => void }) {
+  return (
+    <motion.button
+      whileTap={{ scale: 0.93 }}
+      onClick={() => onChange(order === "newest" ? "oldest" : "newest")}
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all duration-200"
+      style={{
+        background: "var(--faint)",
+        borderColor: "var(--border)",
+        color: "var(--muted)",
+      }}>
+      <ArrowUpDown size={10} />
+      <span className="font-mono text-[9px] tracking-wide">
+        {order === "newest" ? "Terbaru" : "Terlama"}
+      </span>
+    </motion.button>
+  );
+}
+
+// ── Main ──────────────────────────────────────────────────────────
 export default function ConfessionBoard({ initialConfessions }: { initialConfessions: Confession[] }) {
-  const [notes, setNotes]           = useState<Confession[]>(initialConfessions);
-  const [showModal, setShowModal]   = useState(false);
+  const [notes, setNotes]         = useState<Confession[]>(initialConfessions);
+  const [showModal, setShowModal] = useState(false);
   const [realtimeOk, setRealtimeOk] = useState(false);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
 
   useEffect(() => {
     const sb      = createClient();
@@ -232,22 +293,30 @@ export default function ConfessionBoard({ initialConfessions }: { initialConfess
     setNotes((prev) => prev.some((n) => n.id === note.id) ? prev : [note, ...prev]);
   }, []);
 
+  const sortedNotes = [...notes].sort((a, b) => {
+    const diff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return sortOrder === "newest" ? -diff : diff;
+  });
+
   return (
     <>
       {/* Header bar */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <LiveDot on={realtimeOk} />
           <span className="font-mono text-[10px]" style={{ color: "var(--muted)" }}>
             {notes.length} note{notes.length !== 1 ? "s" : ""}
           </span>
+          {notes.length > 1 && (
+            <SortToggle order={sortOrder} onChange={setSortOrder} />
+          )}
         </div>
         <button onClick={() => setShowModal(true)} className="btn-gold py-2 px-4 text-xs">
           <Plus size={13} /> Tempel Note
         </button>
       </div>
 
-      {/* Scrollable grid */}
+      {/* Grid */}
       {notes.length === 0 ? (
         <div className="flex flex-col items-center py-20 gap-4 text-center">
           <MessageSquare size={36} style={{ color: "rgba(74,106,144,0.3)" }} />
@@ -261,12 +330,12 @@ export default function ConfessionBoard({ initialConfessions }: { initialConfess
       ) : (
         <div
           className="grid gap-3"
-          style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
-          }}>
-          {notes.map((n, i) => (
-            <NoteCard key={n.id} note={n} index={i} />
-          ))}
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))" }}>
+          <AnimatePresence mode="popLayout">
+            {sortedNotes.map((n, i) => (
+              <NoteCard key={n.id} note={n} index={i} />
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
