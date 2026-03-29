@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import type { Student, GalleryMedia, Confession } from "@/lib/supabase/database.types";
 import type { Track } from "@/components/music/MusicPlayer";
 
-export const revalidate = 60;
+export const revalidate = 10; // 10s cukup — realtime + router.refresh() handle update instan
 
 async function getStudents(): Promise<Student[]> {
   const { data } = await createAdminClient()
@@ -48,7 +48,7 @@ export default async function HomePage() {
   ]);
 
   return (
-    <main className="relative overflow-x-hidden">
+    <main className="relative">
       <NavBar />
       <HeroSection />
 
