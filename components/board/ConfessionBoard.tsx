@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Loader2, MessageSquare, ArrowUpDown, Clock } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Confession, NoteColor } from "@/lib/supabase/database.types";
 
@@ -113,6 +114,7 @@ function PostModal({ onClose, onPosted }: {
   onClose: () => void;
   onPosted: (note: Confession) => void;
 }) {
+  const router                = useRouter();
   const { post }              = usePostNote();
   const [color, setColor]     = useState<NoteColor>("yellow");
   const [content, setContent] = useState("");
@@ -126,8 +128,9 @@ function PostModal({ onClose, onPosted }: {
     setStatus("loading"); setErrMsg("");
     try {
       const note = await post(trimmed, color);
-      onPosted(note);
+      onPosted(note);          // optimistic: langsung tampil di UI
       setStatus("success");
+      router.refresh();        // invalidate Next.js cache biar server data fresh
       setTimeout(onClose, 1100);
     } catch {
       setErrMsg("Gagal posting. Coba lagi?");
