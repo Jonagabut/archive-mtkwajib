@@ -176,7 +176,7 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 120, opacity: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 26 }}
-          className="fixed bottom-0 left-0 right-0 sm:bottom-5 sm:left-auto sm:right-5 sm:w-72 z-30"
+          className="fixed bottom-0 left-0 right-0 sm:bottom-5 sm:left-auto sm:right-5 sm:w-72 z-50"
           role="region"
           aria-label="Music player"
         >
