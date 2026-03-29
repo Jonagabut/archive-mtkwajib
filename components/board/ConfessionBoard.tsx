@@ -1,10 +1,10 @@
 "use client";
 // components/board/ConfessionBoard.tsx
-// UPDATED: waktu post + sort toggle (newest/oldest)
+// FIX: hapus createBrowserClient duplikat — pakai shared createClient() dari project
+// FIX: hapus dead code (postConfessionAction, updateConfessionPositionAction tidak pernah dipanggil)
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Loader2, MessageSquare, ArrowUpDown, Clock } from "lucide-react";
-import { createClient as createBrowserClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Confession, NoteColor } from "@/lib/supabase/database.types";
 
@@ -40,13 +40,12 @@ function formatAbsoluteTime(isoString: string): string {
   });
 }
 
-// Post via anon Supabase client
+// ── Post via shared project Supabase client ───────────────────────
+// FIX: was creating a raw `new createBrowserClient(url, key)` on every call.
+// Now reuses the shared singleton client from @/lib/supabase/client.
 function usePostNote() {
   const post = async (content: string, color: NoteColor) => {
-    const sb = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const sb           = createClient(); // ✅ shared client, no memory leak
     const x_pos        = Math.random() * 600 + 40;
     const y_pos        = Math.random() * 400 + 40;
     const rotation_deg = (Math.random() - 0.5) * 10;
@@ -79,7 +78,6 @@ function NoteCard({ note, index }: { note: Confession; index: number }) {
         borderLeft: `3px solid ${accent.border}`,
         minHeight: 88,
       }}>
-      {/* Content + dot */}
       <div className="flex items-start justify-between gap-2">
         <p className="font-body text-sm leading-relaxed flex-1"
           style={{ color: "var(--ink)", fontSize: 13, lineHeight: 1.55 }}>
@@ -89,7 +87,6 @@ function NoteCard({ note, index }: { note: Confession; index: number }) {
           style={{ background: accent.dot, opacity: 0.7 }} />
       </div>
 
-      {/* Footer: "anonim" + timestamp */}
       <div className="flex items-center justify-between gap-2 mt-auto">
         <span className="font-mono text-[9px]" style={{ color: "var(--muted)" }}>
           anonim
@@ -97,11 +94,10 @@ function NoteCard({ note, index }: { note: Confession; index: number }) {
         <button
           onClick={() => setShowAbsTime((v) => !v)}
           title={showAbsTime ? formatRelativeTime(note.created_at) : formatAbsoluteTime(note.created_at)}
-          className="flex items-center gap-1 group transition-opacity"
+          className="flex items-center gap-1 transition-opacity"
           style={{ opacity: 0.65 }}>
           <Clock size={8} style={{ color: "var(--muted)", flexShrink: 0 }} />
-          <span className="font-mono text-[9px] transition-colors"
-            style={{ color: "var(--muted)" }}>
+          <span className="font-mono text-[9px]" style={{ color: "var(--muted)" }}>
             {showAbsTime
               ? formatAbsoluteTime(note.created_at)
               : formatRelativeTime(note.created_at)}
@@ -247,7 +243,7 @@ function LiveDot({ on }: { on: boolean }) {
   );
 }
 
-// ── Sort toggle button ────────────────────────────────────────────
+// ── Sort toggle ───────────────────────────────────────────────────
 type SortOrder = "newest" | "oldest";
 
 function SortToggle({ order, onChange }: { order: SortOrder; onChange: (o: SortOrder) => void }) {
@@ -256,11 +252,7 @@ function SortToggle({ order, onChange }: { order: SortOrder; onChange: (o: SortO
       whileTap={{ scale: 0.93 }}
       onClick={() => onChange(order === "newest" ? "oldest" : "newest")}
       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all duration-200"
-      style={{
-        background: "var(--faint)",
-        borderColor: "var(--border)",
-        color: "var(--muted)",
-      }}>
+      style={{ background: "var(--faint)", borderColor: "var(--border)", color: "var(--muted)" }}>
       <ArrowUpDown size={10} />
       <span className="font-mono text-[9px] tracking-wide">
         {order === "newest" ? "Terbaru" : "Terlama"}
@@ -271,10 +263,10 @@ function SortToggle({ order, onChange }: { order: SortOrder; onChange: (o: SortO
 
 // ── Main ──────────────────────────────────────────────────────────
 export default function ConfessionBoard({ initialConfessions }: { initialConfessions: Confession[] }) {
-  const [notes, setNotes]         = useState<Confession[]>(initialConfessions);
-  const [showModal, setShowModal] = useState(false);
+  const [notes, setNotes]           = useState<Confession[]>(initialConfessions);
+  const [showModal, setShowModal]   = useState(false);
   const [realtimeOk, setRealtimeOk] = useState(false);
-  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const [sortOrder, setSortOrder]   = useState<SortOrder>("newest");
 
   useEffect(() => {
     const sb      = createClient();
@@ -300,7 +292,6 @@ export default function ConfessionBoard({ initialConfessions }: { initialConfess
 
   return (
     <>
-      {/* Header bar */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <LiveDot on={realtimeOk} />
@@ -316,7 +307,6 @@ export default function ConfessionBoard({ initialConfessions }: { initialConfess
         </button>
       </div>
 
-      {/* Grid */}
       {notes.length === 0 ? (
         <div className="flex flex-col items-center py-20 gap-4 text-center">
           <MessageSquare size={36} style={{ color: "rgba(74,106,144,0.3)" }} />
@@ -328,8 +318,7 @@ export default function ConfessionBoard({ initialConfessions }: { initialConfess
           </p>
         </div>
       ) : (
-        <div
-          className="grid gap-3"
+        <div className="grid gap-3"
           style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))" }}>
           <AnimatePresence mode="popLayout">
             {sortedNotes.map((n, i) => (

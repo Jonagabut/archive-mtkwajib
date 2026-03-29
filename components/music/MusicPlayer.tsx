@@ -1,5 +1,7 @@
 "use client";
 // components/music/MusicPlayer.tsx
+// FIX: stale closure bug on isPlaying, volume, isMuted inside track-change effect
+// — now uses refs to always read latest values without re-creating the Audio element
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -53,12 +55,23 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
   const audioRef       = useRef<HTMLAudioElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
+  // ── Refs that always hold the LATEST state values ──────────────
+  // These prevent stale closures inside the track-change effect
+  const isPlayingRef = useRef(isPlaying);
+  const volumeRef    = useRef(volume);
+  const isMutedRef   = useRef(isMuted);
+
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => { volumeRef.current    = volume;    }, [volume]);
+  useEffect(() => { isMutedRef.current   = isMuted;   }, [isMuted]);
+  // ──────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 3500);
     return () => clearTimeout(timer);
   }, []);
 
-  // Reconstruct Audio element on every track change — prevents memory leaks
+  // Track-change effect — reads latest values via refs, not stale closures
   useEffect(() => {
     const track = tracks[currentIndex];
     if (!track?.src) return;
@@ -69,49 +82,72 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
     const audio = new Audio();
     audioRef.current = audio;
     audio.preload = "metadata";
-    audio.volume  = isMuted ? 0 : volume;
+    // ✅ Read from refs — always current, no stale closure
+    audio.volume = isMutedRef.current ? 0 : volumeRef.current;
 
-    const onTime     = () => { setElapsed(audio.currentTime); setProgress(audio.duration && isFinite(audio.duration) ? audio.currentTime / audio.duration : 0); };
+    const onTime     = () => {
+      setElapsed(audio.currentTime);
+      setProgress(audio.duration && isFinite(audio.duration)
+        ? audio.currentTime / audio.duration : 0);
+    };
     const onDuration = () => { setDuration(audio.duration); setIsLoading(false); };
     const onCanPlay  = () => setIsLoading(false);
-    const onEnded    = () => { setCurrentIndex((i) => (i + 1) % tracks.length); setIsPlaying(true); };
-    const onError    = () => { setIsLoading(false); setCurrentIndex((i) => (i + 1) % tracks.length); };
+    const onEnded    = () => {
+      setCurrentIndex((i) => (i + 1) % tracks.length);
+      setIsPlaying(true); // ensure playing state for next track
+    };
+    const onError = () => {
+      setIsLoading(false);
+      setCurrentIndex((i) => (i + 1) % tracks.length);
+    };
 
-    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("timeupdate",     onTime);
     audio.addEventListener("durationchange", onDuration);
-    audio.addEventListener("canplay", onCanPlay);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("error", onError);
+    audio.addEventListener("canplay",        onCanPlay);
+    audio.addEventListener("ended",          onEnded);
+    audio.addEventListener("error",          onError);
     audio.src = track.src;
 
-    if (isPlaying) {
-      audio.play().catch((err) => { if (err.name !== "AbortError") setIsPlaying(false); });
+    // ✅ Use ref value — not stale isPlaying from closure
+    if (isPlayingRef.current) {
+      audio.play().catch((err) => {
+        if (err.name !== "AbortError") setIsPlaying(false);
+      });
     }
 
     return () => {
       audio.pause(); audio.src = "";
-      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("timeupdate",     onTime);
       audio.removeEventListener("durationchange", onDuration);
-      audio.removeEventListener("canplay", onCanPlay);
-      audio.removeEventListener("ended", onEnded);
-      audio.removeEventListener("error", onError);
+      audio.removeEventListener("canplay",        onCanPlay);
+      audio.removeEventListener("ended",          onEnded);
+      audio.removeEventListener("error",          onError);
       audioRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, tracks]);
+  }, [currentIndex, tracks]); // intentionally excludes isPlaying/volume/isMuted — handled by refs
 
+  // Play/pause effect
   useEffect(() => {
     if (!audioRef.current) return;
-    if (isPlaying) audioRef.current.play().catch((err) => { if (err.name !== "AbortError") setIsPlaying(false); });
-    else audioRef.current.pause();
+    if (isPlaying) {
+      audioRef.current.play().catch((err) => {
+        if (err.name !== "AbortError") setIsPlaying(false);
+      });
+    } else {
+      audioRef.current.pause();
+    }
   }, [isPlaying]);
 
+  // Volume/mute effect
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = isMuted ? 0 : volume;
   }, [volume, isMuted]);
 
   const goToPrev = useCallback(() => {
-    if (elapsed > 3 && audioRef.current) { audioRef.current.currentTime = 0; return; }
+    if (elapsed > 3 && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      return;
+    }
     setCurrentIndex((i) => (i - 1 + tracks.length) % tracks.length);
     setIsPlaying(true);
   }, [elapsed, tracks.length]);
@@ -140,8 +176,6 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 120, opacity: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 26 }}
-          // Mobile: full width, pinned to bottom edge.
-          // sm+: fixed width in bottom-right corner.
           className="fixed bottom-0 left-0 right-0 sm:bottom-5 sm:left-auto sm:right-5 sm:w-72 z-30"
           role="region"
           aria-label="Music player"
@@ -216,7 +250,7 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
                           <AnimatePresence mode="wait" initial={false}>
                             {isPlaying
                               ? <motion.span key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ duration: 0.1 }}><Pause size={14} fill="currentColor" /></motion.span>
-                              : <motion.span key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ duration: 0.1 }}><Play size={14} fill="currentColor" className="ml-0.5" /></motion.span>
+                              : <motion.span key="play"  initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ duration: 0.1 }}><Play  size={14} fill="currentColor" className="ml-0.5" /></motion.span>
                             }
                           </AnimatePresence>
                         </motion.button>
@@ -229,7 +263,11 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
                       <div className="hidden sm:flex items-center gap-1.5 w-16">
                         <input type="range" min={0} max={1} step={0.05}
                           value={isMuted ? 0 : volume}
-                          onChange={(e) => { const v = parseFloat(e.target.value); setVolume(v); if (v > 0) setIsMuted(false); }}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value);
+                            setVolume(v);
+                            if (v > 0) setIsMuted(false);
+                          }}
                           className="w-full h-1 appearance-none rounded-full bg-faint cursor-pointer"
                           style={{ accentColor: "#f5c842" }} aria-label="Volume" />
                       </div>
