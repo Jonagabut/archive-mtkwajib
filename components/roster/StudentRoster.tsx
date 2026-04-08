@@ -10,59 +10,89 @@ const PH_GRAD  = "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w
 
 // ── Bottom sheet (mobile) ──────────────────────────────────────────
 function DetailSheet({ student, onClose }: { student: Student; onClose: () => void }) {
+  const handleShare = async () => {
+    const text = `Kenalan sama ${student.name} dari MTK Wajib Archive 2026! 🎓`;
+    if (navigator.share) {
+      try { await navigator.share({ title: "MTK Wajib Archive", text, url: window.location.href }); }
+      catch (err) { console.error(err); }
+    } else {
+      await navigator.clipboard.writeText(`${text} ${window.location.href}`);
+      alert("Link disalin!");
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-end justify-center"
-      style={{ background: "rgba(3,8,15,0.88)", backdropFilter: "blur(10px)" }}
+      style={{ background: "rgba(3,8,15,0.85)", backdropFilter: "blur(12px)" }}
       onClick={onClose}>
       <motion.div
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        onDragEnd={(_, info) => { if (info.offset.y > 100) onClose(); }}
         initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
         transition={{ type: "spring", stiffness: 340, damping: 34 }}
-        className="w-full max-w-lg rounded-t-3xl overflow-hidden pb-safe"
+        className="w-full max-w-lg rounded-t-[2.5rem] overflow-hidden pb-safe flex flex-col max-h-[92vh]"
         style={{ background: "var(--card)", border: "1px solid var(--border)" }}
         onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full" style={{ background: "var(--border)" }} />
+        
+        <div className="flex justify-center pt-4 pb-2">
+          <div className="w-12 h-1.5 rounded-full" style={{ background: "var(--border)", opacity: 0.6 }} />
         </div>
-        <div className="relative w-full h-52 overflow-hidden">
-          <Image src={student.photo_grad_url || PH_GRAD} alt={student.name} fill
-            className="object-cover object-top" />
-          <div className="absolute inset-0"
-            style={{ background: "linear-gradient(to top, var(--card) 10%, transparent 60%)" }} />
-          <button onClick={onClose}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: "rgba(3,8,15,0.65)", color: "var(--soft)" }}>
-            <X size={14} />
-          </button>
-        </div>
-        <div className="px-5 pb-8 flex flex-col gap-3">
-          <div>
-            <h3 className="font-display text-2xl" style={{ color: "var(--ink)", fontStyle: "italic" }}>
-              {student.name}
-            </h3>
-            {student.custom_title && (
-              <span className="font-mono text-[10px]" style={{ color: "var(--gold)" }}>
-                {student.custom_title}
-              </span>
+
+        <div className="overflow-y-auto">
+          <div className="relative w-full h-64 overflow-hidden">
+            <Image src={student.photo_grad_url || PH_GRAD} alt={student.name} fill
+              className="object-cover object-top" />
+            <div className="absolute inset-0"
+              style={{ background: "linear-gradient(to top, var(--card) 5%, transparent 60%)" }} />
+            <div className="absolute top-4 right-4 flex gap-2">
+              <button 
+                onClick={handleShare}
+                className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md"
+                style={{ background: "rgba(3,8,15,0.6)", color: "var(--gold)" }}>
+                <Quote size={14} className="rotate-180" />
+              </button>
+              <button onClick={onClose}
+                className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md"
+                style={{ background: "rgba(3,8,15,0.6)", color: "var(--soft)" }}>
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div className="px-6 pb-12 flex flex-col gap-5">
+            <div>
+              <h3 className="font-display text-3xl" style={{ color: "var(--ink)", fontStyle: "italic" }}>
+                {student.name}
+              </h3>
+              {student.custom_title && (
+                <span className="font-mono text-xs tracking-wider" style={{ color: "var(--gold)" }}>
+                  {student.custom_title}
+                </span>
+              )}
+            </div>
+
+            {student.quote && (
+              <div className="flex items-start gap-3 bg-faint/30 p-4 rounded-2xl border border-border/50">
+                <Quote size={14} style={{ color: "var(--gold)", marginTop: 4, flexShrink: 0 }} />
+                <p className="font-body text-base leading-relaxed italic" style={{ color: "var(--muted)" }}>
+                  {student.quote}
+                </p>
+              </div>
+            )}
+
+            {student.destination && (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full border self-start"
+                style={{ borderColor: "rgba(255,107,107,0.3)", color: "var(--coral)" }}>
+                <MapPin size={12} />
+                <span className="font-mono text-[11px] uppercase tracking-wide">
+                  {student.destination}
+                </span>
+              </div>
             )}
           </div>
-          {student.quote && (
-            <div className="flex items-start gap-2">
-              <Quote size={11} style={{ color: "var(--gold)", marginTop: 3, flexShrink: 0 }} />
-              <p className="font-body text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
-                {student.quote}
-              </p>
-            </div>
-          )}
-          {student.destination && (
-            <div className="flex items-center gap-1.5">
-              <MapPin size={11} style={{ color: "var(--coral)", flexShrink: 0 }} />
-              <span className="font-mono text-[10px]" style={{ color: "var(--coral)" }}>
-                {student.destination}
-              </span>
-            </div>
-          )}
         </div>
       </motion.div>
     </motion.div>
