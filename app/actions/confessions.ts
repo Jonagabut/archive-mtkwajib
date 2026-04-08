@@ -77,37 +77,3 @@ export async function updateConfessionPositionAction(
 
   return {};
 }
-
-/**
- * Increments the reaction count for a note.
- * REQUIRES: 'likes_count' column in 'confessions' table.
- */
-export async function reactToConfessionAction(
-  id: string
-): Promise<{ error?: string; count?: number }> {
-  if (!/^[0-9a-f-]{36}$/.test(id)) return { error: "Invalid ID." };
-
-  const supabase = createAdminClient();
-
-  // We use a simple increment logic. 
-  // In a real high-traffic app, you'd use a postgres function (rpc) 
-  // to prevent race conditions, but for a class archive this is fine.
-  const { data, error } = await supabase
-    .from("confessions")
-    .select("likes_count")
-    .eq("id", id)
-    .single();
-
-  if (error) return { error: "Gagal ambil data love." };
-
-  const newCount = ((data as any).likes_count || 0) + 1;
-
-  const { error: updError } = await supabase
-    .from("confessions")
-    .update({ likes_count: newCount })
-    .eq("id", id);
-
-  if (updError) return { error: "Gagal ngasih love." };
-
-  return { count: newCount };
-}

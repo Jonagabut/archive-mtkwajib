@@ -515,7 +515,7 @@ function UploadModal({ onClose }: { onClose: () => void }) {
                 disabled={status === "loading" || status === "compressing"}
                 className="btn-gold justify-center w-full disabled:opacity-50">
                 {status === "loading"
-                  ? <><Loader2 size={14} className="animate-spin" /> Lagi upload...</>
+                  ? <><Loader2 size={14} className="animate-spin" /> Uploading...</>
                   : <><Upload size={14} /> Upload ke Archive</>
                 }
               </button>

@@ -102,10 +102,21 @@ export default function HeroSection() {
           {/* CTAs */}
           <motion.div variants={item}
             className="flex flex-col xs:flex-row flex-wrap items-center gap-3 justify-center w-full xs:w-auto">
-            <a href="#roster"  className="btn-gold w-full xs:w-auto justify-center">Kenalan Sama Kita</a>
-            <a href="#gallery" className="btn-ghost w-full xs:w-auto justify-center">Buka Archive</a>
+            <a href="#roster"  className="btn-gold w-full xs:w-auto justify-center">Lihat Warga Kelas</a>
+            <a href="#gallery" className="btn-ghost w-full xs:w-auto justify-center">The Archive</a>
           </motion.div>
 
+          {/* Spotify */}
+          <motion.div variants={item} className="w-full sm:max-w-[340px]">
+            <div className="card-glass p-3">
+              <p className="section-eyebrow text-[9px] mb-2 text-center">🎵 Class Anthem</p>
+              <iframe
+                src={`https://open.spotify.com/embed/playlist/${SPOTIFY_ID}?utm_source=generator&theme=0`}
+                width="100%" height="80" style={{ border: 0 }}
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy" className="rounded-lg" title="Class playlist" />
+            </div>
+          </motion.div>
         </motion.div>
       </motion.div>
 
